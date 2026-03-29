@@ -1,4 +1,5 @@
 import { readU16LE, readU32LE, writeU16LE, writeU32LE, readString, writeString } from './detector.js';
+import { readGen3EncodedString } from './gen3-string.js';
 import { type Pokemon, PokemonGender, PokemonNature, createEmptyPokemon } from '../structures/pokemon.js';
 import { computeChecksum16, lcrnNext, decryptArray, encryptArray } from '../util/crypto.js';
 import { getLevelFromTotalExperience } from '../data/experience.js';
@@ -67,8 +68,9 @@ export function readPK3(encrypted: Uint8Array): Pokemon {
   pkm.pid = readU32LE(data, 0);
   pkm.otId = readU16LE(data, 4);
   pkm.secretId = readU16LE(data, 6);
-  pkm.nickname = readString(data, 0x08, 10, false);
-  pkm.otName = readString(data, 0x14, 7, false);
+  const lang3 = data[0x12]!;
+  pkm.nickname = readGen3EncodedString(data, 0x08, 10, lang3);
+  pkm.otName = readGen3EncodedString(data, 0x14, 7, lang3);
   pkm.species = readU16LE(data, 32);
   pkm.heldItem = readU16LE(data, 34);
   pkm.exp = readU32LE(data, 36);
@@ -101,7 +103,7 @@ export function readPK3(encrypted: Uint8Array): Pokemon {
     pkm.level = getLevelFromTotalExperience(pkm.exp, getSpeciesGrowthRateId(pkm.species));
   }
   pkm.isShiny = ((pkm.otId ^ pkm.secretId ^ (pkm.pid >>> 16) ^ (pkm.pid & 0xFFFF)) < 8);
-  pkm.language = data[0x12];
+  pkm.language = lang3;
   return pkm;
 }
 
@@ -416,7 +418,12 @@ export function readPK67(encrypted: Uint8Array, gen: number): Pokemon {
       def: readU16LE(data, 0xF8), spe: readU16LE(data, 0xFA),
       spa: readU16LE(data, 0xFC), spd: readU16LE(data, 0xFE),
     };
-    pkm.level = data[0xEC];
+    const partyLevel = data[0xEC];
+    if (partyLevel >= 1 && partyLevel <= 100) {
+      pkm.level = partyLevel;
+    } else {
+      pkm.level = getLevelFromTotalExperience(pkm.exp, getSpeciesGrowthRateId(pkm.species));
+    }
   } else {
     pkm.level = getLevelFromTotalExperience(pkm.exp, getSpeciesGrowthRateId(pkm.species));
   }
@@ -582,7 +589,12 @@ export function readPK89(encrypted: Uint8Array, gen: number): Pokemon {
       def: readU16LE(data, 0x150), spe: readU16LE(data, 0x152),
       spa: readU16LE(data, 0x154), spd: readU16LE(data, 0x156),
     };
-    pkm.level = data[0x148];
+    const partyLevel = data[0x148];
+    if (partyLevel >= 1 && partyLevel <= 100) {
+      pkm.level = partyLevel;
+    } else {
+      pkm.level = getLevelFromTotalExperience(pkm.exp, getSpeciesGrowthRateId(pkm.species));
+    }
   } else {
     pkm.level = getLevelFromTotalExperience(pkm.exp, getSpeciesGrowthRateId(pkm.species));
   }

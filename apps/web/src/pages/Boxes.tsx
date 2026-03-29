@@ -21,6 +21,10 @@ export function Boxes() {
 
   const currentBox = saveFile.boxes[selectedBoxIndex];
   const pokemonCount = currentBox?.pokemon.filter(p => p !== null && p.species > 0).length ?? 0;
+  const occupiedSlots =
+    currentBox?.pokemon
+      .map((pkm, slot) => ({ pkm, slot }))
+      .filter(({ pkm }) => pkm !== null && pkm.species > 0) ?? [];
 
   return (
     <div className="space-y-6">
@@ -64,17 +68,23 @@ export function Boxes() {
               </button>
             </div>
 
-            <div className="grid grid-cols-6 gap-2">
-              {currentBox?.pokemon.map((pkm, slot) => (
-                <PokemonCard
-                  key={`${selectedBoxIndex}-${slot}`}
-                  pokemon={pkm}
-                  selected={selectedSlot?.box === selectedBoxIndex && selectedSlot?.slot === slot}
-                  onClick={() => selectSlot(selectedBoxIndex, slot)}
-                  size="sm"
-                  showDetails
-                />
-              ))}
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 min-h-[4rem]">
+              {occupiedSlots.length === 0 ? (
+                <p className="col-span-full text-center text-sm text-surface-500 py-8">
+                  No Pokémon in this box
+                </p>
+              ) : (
+                occupiedSlots.map(({ pkm, slot }) => (
+                  <PokemonCard
+                    key={`${selectedBoxIndex}-${slot}`}
+                    pokemon={pkm}
+                    selected={selectedSlot?.box === selectedBoxIndex && selectedSlot?.slot === slot}
+                    onClick={() => selectSlot(selectedBoxIndex, slot)}
+                    size="sm"
+                    showDetails
+                  />
+                ))
+              )}
             </div>
           </motion.div>
 

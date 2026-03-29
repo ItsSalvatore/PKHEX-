@@ -25,6 +25,7 @@ export function getPokemonSpriteFallbackUrls(species: number, shiny = false, for
     : `${SPRITE_BASE}/other/official-artwork`;
   urls.push(`${artRoot}/${species}.png`);
   const homeRoot = shiny ? `${SPRITE_BASE}/other/home/shiny` : `${SPRITE_BASE}/other/home`;
+  if (form > 0) urls.push(`${homeRoot}/${species}-${form}.png`);
   urls.push(`${homeRoot}/${species}.png`);
   return urls;
 }

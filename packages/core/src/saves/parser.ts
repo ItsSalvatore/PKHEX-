@@ -10,6 +10,7 @@ import {
   readPK3, readPK45, readPK67, readPK89,
   isPKMEmpty,
 } from './pkm-codec.js';
+import { readGen3EncodedString } from './gen3-string.js';
 
 export function parseSaveFile(data: Uint8Array, fileName: string): SaveFile {
   const detection = detectSaveFile(data);
@@ -153,7 +154,8 @@ function parseGen2(data: Uint8Array, fileName: string): SaveFile {
 function parseGen3(data: Uint8Array, fileName: string, version: GameVersion): SaveFile {
   const sections = loadGen3Sections(data);
   const sectionData = assembleGen3Sections(sections);
-  const trainerName = readGen1String(sectionData, 0, 7);
+  const trainerLang = inferGen3CartridgeLanguage(data);
+  const trainerName = readGen3EncodedString(sectionData, 0, 7, trainerLang);
   const tid = readU16LE(sectionData, 0x000A);
   const sid = readU16LE(sectionData, 0x000C);
   const { displayTID, displaySID } = formatTID(tid, sid, 3);
@@ -275,7 +277,7 @@ const GEN4_OFFSETS: Record<string, Gen4Offsets> = {
 
 function parseGen4(data: Uint8Array, fileName: string, version: GameVersion, sub: string): SaveFile {
   const off = GEN4_OFFSETS[sub] ?? GEN4_OFFSETS['DP'];
-  const trainerName = readString(data, off.trainerName, 8, false);
+  const trainerName = readString(data, off.trainerName, 8, true);
   const tid = readU16LE(data, off.tid);
   const sid = readU16LE(data, off.sid);
   const { displayTID, displaySID } = formatTID(tid, sid, 4);
@@ -329,7 +331,7 @@ function parseGen4(data: Uint8Array, fileName: string, version: GameVersion, sub
 function parseGen5(data: Uint8Array, fileName: string, version: GameVersion, sub: string): SaveFile {
   const isBW = sub === 'BW';
   const playerBlock = 0x19400;
-  const trainerName = readString(data, playerBlock + 4, 8, false);
+  const trainerName = readString(data, playerBlock + 4, 8, true);
   const tid = readU16LE(data, playerBlock + 0x14);
   const sid = readU16LE(data, playerBlock + 0x16);
   const { displayTID, displaySID } = formatTID(tid, sid, 5);
@@ -612,6 +614,13 @@ function parseGen9Trainer(data: Uint8Array, version: GameVersion): TrainerInfo {
 }
 
 // ===== Utilities =====
+
+/** Gen 3 cartridge game code at 0xAC: Japanese carts use a trailing `J` (PKHeX / retail naming). */
+function inferGen3CartridgeLanguage(data: Uint8Array): number {
+  if (data.length < 0xB0) return 2;
+  const code = String.fromCharCode(data[0xAC]!, data[0xAD]!, data[0xAE]!, data[0xAF]!).toUpperCase();
+  return code.endsWith('J') ? 1 : 2;
+}
 
 function readGen1String(data: Uint8Array, offset: number, maxLen: number): string {
   const GEN1_CHARS: Record<number, string> = {
