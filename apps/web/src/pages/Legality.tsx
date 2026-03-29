@@ -4,7 +4,7 @@ import {
   checkLegality, LegalityStatus, getSpeciesName,
   type Pokemon, type LegalityResult,
 } from '@pkhex/core';
-import { getPokemonSprite } from '@/utils/sprites';
+import { PokemonSprite } from '@/components/pokemon/PokemonSprite';
 import { motion } from 'framer-motion';
 import { clsx } from 'clsx';
 import { Shield, CheckCircle, XCircle, AlertTriangle, Zap } from 'lucide-react';
@@ -107,11 +107,12 @@ export function Legality() {
                 entry.result.status === LegalityStatus.Warning && 'border-amber-500/20',
               )}
             >
-              <img
-                src={getPokemonSprite(entry.pkm.species, entry.pkm.isShiny)}
+              <PokemonSprite
+                species={entry.pkm.species}
+                shiny={entry.pkm.isShiny}
+                form={entry.pkm.form}
                 alt={getSpeciesName(entry.pkm.species)}
                 className="w-10 h-10 pixelated"
-                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
               />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-white">

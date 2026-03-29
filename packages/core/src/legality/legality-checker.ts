@@ -1,7 +1,11 @@
 import type { Pokemon } from '../structures/pokemon.js';
 import type { SaveFile } from '../structures/save-file.js';
-import { isSpeciesValid } from '../structures/pokemon.js';
+import { calculateShiny, isSpeciesValid } from '../structures/pokemon.js';
 import { GameGeneration } from '../structures/save-file.js';
+import { getPokedexEntry, getSpeciesAbilityIds, getSpeciesIntroGeneration } from '../data/pokedex.js';
+
+/** Upper bound for move IDs (Gen 9); slots above this are treated as invalid. */
+const MAX_MOVE_ID = 1024;
 
 export enum LegalityStatus {
   Legal = 'legal',
@@ -27,6 +31,48 @@ export function checkLegality(pkm: Pokemon, save?: SaveFile): LegalityResult {
 
   if (!isSpeciesValid(pkm.species)) {
     issues.push({ field: 'species', message: 'Invalid species ID', severity: LegalityStatus.Illegal });
+  } else if (pkm.species > 0 && !getPokedexEntry(pkm.species)) {
+    issues.push({ field: 'species', message: 'No Pokédex data for this species', severity: LegalityStatus.Warning });
+  }
+
+  if (save && pkm.species > 0) {
+    const intro = getSpeciesIntroGeneration(pkm.species);
+    if (intro !== null && intro > save.generation) {
+      issues.push({
+        field: 'species',
+        message: `Species is not available in Gen ${save.generation} (introduced Gen ${intro})`,
+        severity: LegalityStatus.Illegal,
+      });
+    }
+  }
+
+  if (save && pkm.form === 0 && pkm.species > 0 && pkm.ability > 0 && save.generation >= GameGeneration.Gen6) {
+    const { first, second, hidden } = getSpeciesAbilityIds(pkm.species);
+    const allowed = new Set([first, second, hidden].filter(id => id > 0));
+    if (allowed.size > 0 && !allowed.has(pkm.ability)) {
+      issues.push({
+        field: 'ability',
+        message: 'Ability does not match species ability slots (form-specific abilities not validated)',
+        severity: LegalityStatus.Warning,
+      });
+    }
+  }
+
+  if (
+    save
+    && save.generation >= GameGeneration.Gen3
+    && save.generation <= GameGeneration.Gen6
+    && !pkm.isEgg
+    && pkm.pid !== 0
+  ) {
+    const xorShiny = calculateShiny(pkm.pid, pkm.otId, pkm.secretId);
+    if (pkm.isShiny !== xorShiny) {
+      issues.push({
+        field: 'shiny',
+        message: 'Shiny flag does not match PID/TID/SID (Gen 3–6 XOR check)',
+        severity: LegalityStatus.Warning,
+      });
+    }
   }
 
   if (pkm.level < 1 || pkm.level > 100) {
@@ -88,9 +134,20 @@ export function checkLegality(pkm: Pokemon, save?: SaveFile): LegalityResult {
     }
   }
 
-  for (const move of pkm.moves) {
+  for (let mi = 0; mi < pkm.moves.length; mi++) {
+    const move = pkm.moves[mi];
     if (move.ppUps > 3) {
-      issues.push({ field: 'moves', message: `PP Ups cannot exceed 3`, severity: LegalityStatus.Illegal });
+      issues.push({ field: 'moves', message: 'PP Ups cannot exceed 3', severity: LegalityStatus.Illegal });
+    }
+    if (move.id > MAX_MOVE_ID) {
+      issues.push({
+        field: `moves.${mi}`,
+        message: `Move ID ${move.id} is out of range`,
+        severity: LegalityStatus.Illegal,
+      });
+    }
+    if (move.id < 0) {
+      issues.push({ field: `moves.${mi}`, message: 'Move ID cannot be negative', severity: LegalityStatus.Illegal });
     }
   }
 

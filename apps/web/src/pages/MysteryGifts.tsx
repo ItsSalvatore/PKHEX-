@@ -6,7 +6,7 @@ import {
   filterGiftsByGeneration, filterActiveGifts, searchGifts,
   getSpeciesName, canInsertGift,
 } from '@pkhex/core';
-import { getPokemonSprite } from '@/utils/sprites';
+import { PokemonSprite } from '@/components/pokemon/PokemonSprite';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 import {
@@ -191,11 +191,12 @@ export function MysteryGifts() {
               >
                 <div className="flex items-center gap-3">
                   {gift.species ? (
-                    <img
-                      src={getPokemonSprite(gift.species, gift.isShiny)}
-                      alt={gift.speciesName}
+                    <PokemonSprite
+                      species={gift.species}
+                      shiny={!!gift.isShiny}
+                      form={gift.form ?? 0}
+                      alt={gift.speciesName ?? ''}
                       className="w-10 h-10 pixelated"
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                     />
                   ) : (
                     <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
@@ -231,11 +232,12 @@ export function MysteryGifts() {
             >
               {selectedGift.species && (
                 <div className="h-40 bg-gradient-to-br from-emerald-600/20 to-teal-600/20 flex items-center justify-center">
-                  <img
-                    src={getPokemonSprite(selectedGift.species, selectedGift.isShiny)}
-                    alt={selectedGift.speciesName}
-                    className="h-32 pixelated drop-shadow-2xl"
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  <PokemonSprite
+                    species={selectedGift.species}
+                    shiny={!!selectedGift.isShiny}
+                    form={selectedGift.form ?? 0}
+                    alt={selectedGift.speciesName ?? ''}
+                    className="h-32 w-32 object-contain pixelated drop-shadow-2xl"
                   />
                 </div>
               )}

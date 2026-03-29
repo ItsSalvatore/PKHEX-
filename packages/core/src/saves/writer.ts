@@ -1,6 +1,6 @@
 import type { SaveFile, BoxData } from '../structures/save-file.js';
 import type { Pokemon } from '../structures/pokemon.js';
-import { GameGeneration } from '../structures/save-file.js';
+import { GameGeneration, GameVersion } from '../structures/save-file.js';
 import { writeU16LE, writeU32LE, writeString } from './detector.js';
 import { writePK45Fields, writePK67Fields, writePK89Fields, isPKMEmpty } from './pkm-codec.js';
 import { computeChecksum16 } from '../util/crypto.js';
@@ -67,10 +67,14 @@ function writePartyToSave(
 function writeBoxesToSave(
   data: Uint8Array, boxOffset: number,
   boxes: BoxData[], storedSize: number, gen: number,
+  /** Gen 5: 0x1000 bytes per box (30×136 + 0x10 padding). Omit for tight-packed boxes. */
+  boxStrideBytes?: number,
 ): void {
+  const slots = boxes[0]?.pokemon.length ?? 30;
+  const stride = boxStrideBytes ?? slots * storedSize;
   for (let b = 0; b < boxes.length; b++) {
     for (let s = 0; s < boxes[b].pokemon.length; s++) {
-      const off = boxOffset + (b * boxes[b].pokemon.length + s) * storedSize;
+      const off = boxOffset + b * stride + s * storedSize;
       if (off + storedSize <= data.length) {
         writePokemonToSave(data, off, boxes[b].pokemon[s], storedSize, gen);
       }
@@ -85,7 +89,10 @@ function writeGen3Save(data: Uint8Array, save: SaveFile): Uint8Array {
 function writeGen4Save(data: Uint8Array, save: SaveFile): Uint8Array {
   const PK4_STORED = 136;
   const PK4_PARTY = 236;
-  const format = save.fileSize === 0xB0000 ? 'PT' : save.fileSize === 0x80100 ? 'HGSS' : 'DP';
+  const format =
+    save.gameVersion === GameVersion.HeartGold || save.gameVersion === GameVersion.SoulSilver ? 'HGSS'
+      : save.gameVersion === GameVersion.Platinum ? 'PT'
+        : 'DP';
   const off = format === 'HGSS'
     ? { partyCount: 0x94, partyData: 0x98, boxData: 0xF700 }
     : format === 'PT'
@@ -99,9 +106,9 @@ function writeGen4Save(data: Uint8Array, save: SaveFile): Uint8Array {
 function writeGen5Save(data: Uint8Array, save: SaveFile): Uint8Array {
   const PK5_STORED = 136;
   const PK5_PARTY = 220;
-  const partyOff = 0x18E08;
-  writePartyToSave(data, partyOff, partyOff + 4, save.party, PK5_PARTY, 5);
-  writeBoxesToSave(data, 0x400, save.boxes, PK5_STORED, 5);
+  const partyBase = 0x18E00;
+  writePartyToSave(data, partyBase + 4, partyBase + 8, save.party, PK5_PARTY, 5);
+  writeBoxesToSave(data, 0x400, save.boxes, PK5_STORED, 5, 0x1000);
   return data;
 }
 

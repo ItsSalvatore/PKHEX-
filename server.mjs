@@ -1,7 +1,7 @@
 import express from 'express';
 import compression from 'compression';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { dirname, join, basename } from 'path';
 import { existsSync } from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -35,7 +35,8 @@ app.use(express.static(DIST_DIR, {
     if (filePath.endsWith('.html')) {
       res.setHeader('Cache-Control', 'no-cache');
     }
-    if (filePath.endsWith('sw.js') || filePath.endsWith('workbox-*.js')) {
+    const base = basename(filePath);
+    if (base === 'sw.js' || base.startsWith('workbox-')) {
       res.setHeader('Cache-Control', 'no-cache');
     }
   },

@@ -1,5 +1,47 @@
 import { GameGeneration, GameVersion } from '../structures/save-file.js';
 
+/** PKHeX `Checksums.CRC16_CCITT` — Gen 5 save footers */
+export function crc16CcittGen5(data: Uint8Array, start: number, len: number): number {
+  let top = 0xff;
+  let bot = 0xff;
+  const end = start + len;
+  for (let i = start; i < end; i++) {
+    const b = data[i]!;
+    let x = (b ^ top) & 0xff;
+    x ^= x >> 4;
+    top = (bot ^ (x >> 3) ^ ((x << 4) & 0xff)) & 0xff;
+    bot = (x ^ ((x << 5) & 0xff)) & 0xff;
+  }
+  return ((top << 8) | bot) & 0xffff;
+}
+
+const SIZE_G4_RAW = 0x80000;
+const GEN4_MAGIC_JAPAN_INTL = 0x20060623;
+const GEN4_MAGIC_KOREAN = 0x20070903;
+/** SAV4DP.GeneralSize, SAV4Pt.GeneralSize, SAV4HGSS.GeneralSize (PKHeX) */
+const GEN4_GENERAL_DP = 0xC100;
+const GEN4_GENERAL_PT = 0xCF2C;
+const GEN4_GENERAL_HGSS = 0xF628;
+
+function isValidGen4GeneralFooter(data: Uint8Array, generalSize: number): boolean {
+  const generalOffset = 0x40000;
+  if (generalOffset + generalSize > data.length) return false;
+  const gEnd = generalOffset + generalSize;
+  const storedSize = readU32LE(data, gEnd - 12);
+  if (storedSize !== generalSize) return false;
+  const sdk = readU32LE(data, gEnd - 8);
+  return sdk === GEN4_MAGIC_JAPAN_INTL || sdk === GEN4_MAGIC_KOREAN;
+}
+
+function isValidGen5BlockFooter(data: Uint8Array, mainSize: number, infoLength: number): boolean {
+  const start = mainSize - 0x100;
+  const footerLen = infoLength + 0x10;
+  if (start < 0 || start + footerLen > data.length) return false;
+  const stored = readU16LE(data, start + footerLen - 2);
+  const actual = crc16CcittGen5(data, start, infoLength);
+  return stored === actual;
+}
+
 export interface SaveDetectionResult {
   generation: GameGeneration;
   version: GameVersion;
@@ -60,6 +102,14 @@ function stripEmulatorHeaders(raw: Uint8Array): { data: Uint8Array; stripped: st
     return { data: raw.subarray(header), stripped: `GBA_header_${header}` };
   }
 
+  // DS: 512 KiB save + 256 B prefix (some exports / Delta-style dumps)
+  if (size === SIZE_G4_RAW + 0x100) {
+    const inner = raw.subarray(0x100);
+    if (inner.length === SIZE_G4_RAW && isValidGen4GeneralFooter(inner, GEN4_GENERAL_HGSS)) {
+      return { data: inner, stripped: 'ds_header_256' };
+    }
+  }
+
   for (const hs of GBA_HEADER_SIZES) {
     const inner = size - hs;
     if (inner === 0x8000 || inner === 0x10000 || inner === 0x20000) {
@@ -91,47 +141,62 @@ function tryDetectGen2(data: Uint8Array, size: number): Omit<SaveDetectionResult
 
 function tryDetectGen3(data: Uint8Array, size: number): Omit<SaveDetectionResult, 'data'> | null {
   if (size !== 0x20000) return null;
-  const sectionId0 = readU16LE(data, 0x0FF4);
   const magic0 = readU32LE(data, 0x0FF8);
   if (magic0 === 0x08012025) {
     const version = detectGen3Version(data);
     return { generation: GameGeneration.Gen3, version, valid: true, format: 'SAV3', headerOffset: 0 };
   }
-  const sectionIdB = readU16LE(data, 0xEFF4);
   const magicB = readU32LE(data, 0xEFF8);
   if (magicB === 0x08012025) {
-    return { generation: GameGeneration.Gen3, version: GameVersion.Ruby, valid: true, format: 'SAV3', headerOffset: 0 };
-  }
-  return { generation: GameGeneration.Gen3, version: GameVersion.Ruby, valid: true, format: 'SAV3', headerOffset: 0 };
-}
-
-function detectGen3Version(data: Uint8Array): GameVersion {
-  const gameCode = readU32LE(data, 0xAC);
-  return GameVersion.Emerald;
-}
-
-function tryDetectGen4(data: Uint8Array, size: number): Omit<SaveDetectionResult, 'data'> | null {
-  if (size === 0x80000) {
-    const footer = readU32LE(data, 0x0000CFC0 + 0x1F100);
-    return { generation: GameGeneration.Gen4, version: GameVersion.Diamond, valid: true, format: 'SAV4_DP', headerOffset: 0 };
-  }
-  if (size === 0x80100) {
-    return { generation: GameGeneration.Gen4, version: GameVersion.HeartGold, valid: true, format: 'SAV4_HGSS', headerOffset: 0 };
-  }
-  if (size === 0xB0000) {
-    return { generation: GameGeneration.Gen4, version: GameVersion.Platinum, valid: true, format: 'SAV4_PT', headerOffset: 0 };
+    const version = detectGen3Version(data);
+    return { generation: GameGeneration.Gen3, version, valid: true, format: 'SAV3', headerOffset: 0 };
   }
   return null;
 }
 
-function tryDetectGen5(data: Uint8Array, size: number): Omit<SaveDetectionResult, 'data'> | null {
-  if (size === 0x80000) {
-    const c = readU16LE(data, 0x1941A);
-    if (c !== 0) {
-      return { generation: GameGeneration.Gen5, version: GameVersion.Black, valid: true, format: 'SAV5_BW', headerOffset: 0 };
+/** Game code in section 0 at 0xAC (ASCII, e.g. AXVE = FireRed) */
+function detectGen3Version(data: Uint8Array): GameVersion {
+  const code =
+    (String.fromCharCode(data[0xAC]!, data[0xAD]!, data[0xAE]!, data[0xAF]!)).toUpperCase();
+  const map: Record<string, GameVersion> = {
+    AXVE: GameVersion.FireRed, AXPE: GameVersion.LeafGreen,
+    BPEE: GameVersion.Emerald,
+    BPRE: GameVersion.Ruby, BPGE: GameVersion.Sapphire,
+  };
+  return map[code] ?? GameVersion.Emerald;
+}
+
+function tryDetectGen4(data: Uint8Array, size: number): Omit<SaveDetectionResult, 'data'> | null {
+  if (size === SIZE_G4_RAW) {
+    if (isValidGen4GeneralFooter(data, GEN4_GENERAL_DP)) {
+      return { generation: GameGeneration.Gen4, version: GameVersion.Diamond, valid: true, format: 'SAV4_DP', headerOffset: 0 };
     }
+    if (isValidGen4GeneralFooter(data, GEN4_GENERAL_PT)) {
+      return { generation: GameGeneration.Gen4, version: GameVersion.Platinum, valid: true, format: 'SAV4_PT', headerOffset: 0 };
+    }
+    if (isValidGen4GeneralFooter(data, GEN4_GENERAL_HGSS)) {
+      return { generation: GameGeneration.Gen4, version: GameVersion.HeartGold, valid: true, format: 'SAV4_HGSS', headerOffset: 0 };
+    }
+    return null;
   }
-  if (size === 0x100000) {
+  // Some tools append extra data; PKHeX still uses 512 KiB + Gen 4 footers for Pt
+  if (size === 0xB0000) {
+    const head = data.subarray(0, SIZE_G4_RAW);
+    if (isValidGen4GeneralFooter(head, GEN4_GENERAL_PT)) {
+      return { generation: GameGeneration.Gen4, version: GameVersion.Platinum, valid: true, format: 'SAV4_PT', headerOffset: 0 };
+    }
+    return null;
+  }
+  return null;
+}
+
+/** BW / B2W2 cartridge saves are both 512 KiB; footer CRC distinguishes them (PKHeX). */
+function tryDetectGen5(data: Uint8Array, size: number): Omit<SaveDetectionResult, 'data'> | null {
+  if (size !== SIZE_G4_RAW) return null;
+  if (isValidGen5BlockFooter(data, 0x24000, 0x8C)) {
+    return { generation: GameGeneration.Gen5, version: GameVersion.Black, valid: true, format: 'SAV5_BW', headerOffset: 0 };
+  }
+  if (isValidGen5BlockFooter(data, 0x26000, 0x94)) {
     return { generation: GameGeneration.Gen5, version: GameVersion.Black2, valid: true, format: 'SAV5_B2W2', headerOffset: 0 };
   }
   return null;

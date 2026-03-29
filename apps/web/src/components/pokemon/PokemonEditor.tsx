@@ -7,7 +7,7 @@ import {
   searchSpecies, searchMoves, searchItems,
   NATURE_DATA,
 } from '@pkhex/core';
-import { getPokemonArtwork, getPokemonSprite } from '@/utils/sprites';
+import { PokemonArtwork } from './PokemonArtwork';
 import { useAppStore } from '@/store/app-store';
 import { motion } from 'framer-motion';
 import { clsx } from 'clsx';
@@ -72,8 +72,6 @@ export function PokemonEditor({ pokemon: initialPokemon, onBack }: PokemonEditor
 
   const legality = checkLegality(pokemon, saveFile ?? undefined);
   const speciesName = getSpeciesName(pokemon.species);
-  const artwork = getPokemonArtwork(pokemon.species);
-  const sprite = getPokemonSprite(pokemon.species, pokemon.isShiny);
 
   const tabs: { id: EditorTab; label: string }[] = [
     { id: 'main', label: 'Main' },
@@ -104,9 +102,12 @@ export function PokemonEditor({ pokemon: initialPokemon, onBack }: PokemonEditor
 
       <div className="glass rounded-2xl overflow-hidden">
         <div className="relative h-44 bg-gradient-to-br from-indigo-600/20 to-purple-600/20 flex items-center justify-center">
-          <img src={artwork || sprite} alt={speciesName}
-            className="h-36 object-contain drop-shadow-2xl"
-            onError={(e) => { (e.target as HTMLImageElement).src = sprite; }} />
+          <PokemonArtwork
+            species={pokemon.species}
+            shiny={pokemon.isShiny}
+            alt={speciesName}
+            className="h-36 w-auto max-w-full object-contain drop-shadow-2xl"
+          />
           {pokemon.isShiny && (
             <div className="absolute top-3 right-3 badge badge-shiny"><Sparkles className="w-3 h-3 mr-1" /> Shiny</div>
           )}

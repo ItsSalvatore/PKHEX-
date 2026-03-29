@@ -1,10 +1,12 @@
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { useAppStore } from '@/store/app-store';
+import { usePwaGameContext } from '@/hooks/usePwaGameContext';
 import { clsx } from 'clsx';
 import { X } from 'lucide-react';
 
 export function AppLayout() {
+  usePwaGameContext();
   const { sidebarOpen, error, clearError } = useAppStore();
 
   return (

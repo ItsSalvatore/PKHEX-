@@ -13,7 +13,10 @@ import {
 
 export function parseSaveFile(data: Uint8Array, fileName: string): SaveFile {
   const detection = detectSaveFile(data);
-  const saveData = detection.data;
+  let saveData = detection.data;
+  if (detection.format === 'SAV4_PT' && saveData.length === 0xB0000) {
+    saveData = saveData.subarray(0, 0x80000);
+  }
 
   if (!detection.valid) {
     return createFallbackSave(saveData, fileName, detection.generation, detection.version);
@@ -325,38 +328,44 @@ function parseGen4(data: Uint8Array, fileName: string, version: GameVersion, sub
 
 function parseGen5(data: Uint8Array, fileName: string, version: GameVersion, sub: string): SaveFile {
   const isBW = sub === 'BW';
-  const nameOff = isBW ? 0x19404 : 0x19404;
-  const trainerName = readString(data, nameOff, 8);
-  const tidOff = isBW ? 0x19414 : 0x19414;
-  const tid = readU16LE(data, tidOff);
-  const sid = readU16LE(data, tidOff + 2);
+  const playerBlock = 0x19400;
+  const trainerName = readString(data, playerBlock + 4, 8);
+  const tid = readU16LE(data, playerBlock + 0x14);
+  const sid = readU16LE(data, playerBlock + 0x16);
   const { displayTID, displaySID } = formatTID(tid, sid, 5);
+  const moneyOff = isBW ? 0x21D88 : 0x21F08;
   const trainer: TrainerInfo = {
     name: trainerName || 'Hilbert', tid, sid, displayTID, displaySID,
-    gender: data[tidOff + 4] & 1, money: readU32LE(data, tidOff + 8),
-    region: 'Unova', language: 2, gameVersion: version,
-    badges: Array.from({ length: 8 }, (_, i) => !!(data[tidOff + 0x20] & (1 << i))),
-    playTime: { hours: readU16LE(data, nameOff - 4), minutes: data[nameOff - 2], seconds: data[nameOff - 1] },
+    gender: data[playerBlock + 0x21]! & 1,
+    money: readU32LE(data, moneyOff),
+    region: 'Unova', language: data[playerBlock + 0x1E] ?? 2, gameVersion: version,
+    badges: Array.from({ length: 8 }, () => false),
+    playTime: {
+      hours: readU16LE(data, playerBlock + 0x24),
+      minutes: data[playerBlock + 0x26]!,
+      seconds: data[playerBlock + 0x27]!,
+    },
   };
   const PK5_PARTY = 220;
   const PK5_STORED = 136;
-  const partyOff = isBW ? 0x18E08 : 0x18E08;
-  const partyCount = Math.min(data[partyOff], 6);
+  const partyOff = 0x18E00;
+  const partyCount = Math.min(data[partyOff + 4]!, 6);
   const party: (Pokemon | null)[] = [];
   for (let i = 0; i < 6; i++) {
     if (i < partyCount) {
-      const raw = data.subarray(partyOff + 4 + i * PK5_PARTY, partyOff + 4 + (i + 1) * PK5_PARTY);
+      const raw = data.subarray(partyOff + 8 + i * PK5_PARTY, partyOff + 8 + (i + 1) * PK5_PARTY);
       if (!isPKMEmpty(raw, PK5_STORED)) {
         party.push(readPK45(new Uint8Array(raw), 5));
       } else party.push(null);
     } else party.push(null);
   }
-  const boxOff = 0x400;
+  const boxBase = 0x400;
+  const boxStride = 30 * PK5_STORED + 0x10;
   const boxes: BoxData[] = [];
   for (let b = 0; b < 24; b++) {
     const pokemon: (Pokemon | null)[] = [];
     for (let s = 0; s < 30; s++) {
-      const pkmOff = boxOff + (b * 30 + s) * PK5_STORED;
+      const pkmOff = boxBase + b * boxStride + s * PK5_STORED;
       if (pkmOff + PK5_STORED <= data.length) {
         const raw = new Uint8Array(data.subarray(pkmOff, pkmOff + PK5_STORED));
         if (!isPKMEmpty(raw, PK5_STORED)) {

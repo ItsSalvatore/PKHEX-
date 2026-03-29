@@ -10,6 +10,7 @@ import { MysteryGifts } from './pages/MysteryGifts';
 import { Legality } from './pages/Legality';
 import { SettingsPage } from './pages/SettingsPage';
 import { CheatCodes } from './pages/CheatCodes';
+import { Pokedex } from './pages/Pokedex';
 
 export default function App() {
   return (
@@ -23,6 +24,7 @@ export default function App() {
           <Route path="/trainer" element={<Trainer />} />
           <Route path="/inventory" element={<Inventory />} />
           <Route path="/mystery-gifts" element={<MysteryGifts />} />
+          <Route path="/pokedex" element={<Pokedex />} />
           <Route path="/legality" element={<Legality />} />
           <Route path="/cheat-codes" element={<CheatCodes />} />
           <Route path="/settings" element={<SettingsPage />} />

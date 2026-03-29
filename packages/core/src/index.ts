@@ -14,6 +14,7 @@ export * from './mystery-gift/database.js';
 export * from './legality/legality-checker.js';
 
 export * from './data/species.js';
+export * from './data/pokedex.js';
 export * from './data/types.js';
 export * from './data/items.js';
 export * from './data/moves.js';

@@ -4,7 +4,7 @@ import { GAME_NAMES } from '@pkhex/core';
 import { clsx } from 'clsx';
 import {
   Home, Upload, Users, Box, Backpack, Gift, Shield, Gamepad2,
-  Settings, ChevronLeft, ChevronRight, Sparkles, Zap,
+  Settings, ChevronLeft, ChevronRight, Sparkles, Zap, BookOpen,
 } from 'lucide-react';
 
 const navItems = [
@@ -15,6 +15,7 @@ const navItems = [
   { path: '/trainer', icon: Sparkles, label: 'Trainer', requiresSave: true },
   { path: '/inventory', icon: Backpack, label: 'Inventory', requiresSave: true },
   { path: '/mystery-gifts', icon: Gift, label: 'Mystery Gifts' },
+  { path: '/pokedex', icon: BookOpen, label: 'Pokédex' },
   { path: '/legality', icon: Shield, label: 'Legality', requiresSave: true },
   { path: '/cheat-codes', icon: Gamepad2, label: 'Cheat Codes' },
   { path: '/settings', icon: Settings, label: 'Settings' },

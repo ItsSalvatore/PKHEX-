@@ -1,6 +1,6 @@
 import type { Pokemon } from '@pkhex/core';
 import { getSpeciesName, getNatureName } from '@pkhex/core';
-import { getPokemonSprite } from '@/utils/sprites';
+import { PokemonSprite } from './PokemonSprite';
 import { clsx } from 'clsx';
 import { Sparkles } from 'lucide-react';
 
@@ -29,7 +29,6 @@ export function PokemonCard({ pokemon, selected, onClick, size = 'md', showDetai
     );
   }
 
-  const sprite = getPokemonSprite(pokemon.species, pokemon.isShiny);
   const name = pokemon.nickname || getSpeciesName(pokemon.species);
 
   return (
@@ -48,8 +47,10 @@ export function PokemonCard({ pokemon, selected, onClick, size = 'md', showDetai
         </div>
       )}
       <div className="flex flex-col items-center gap-1">
-        <img
-          src={sprite}
+        <PokemonSprite
+          species={pokemon.species}
+          shiny={pokemon.isShiny}
+          form={pokemon.form}
           alt={name}
           className={clsx(
             'pixelated drop-shadow-lg',
@@ -57,8 +58,6 @@ export function PokemonCard({ pokemon, selected, onClick, size = 'md', showDetai
             size === 'md' && 'w-12 h-12',
             size === 'lg' && 'w-16 h-16',
           )}
-          loading="lazy"
-          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
         />
         {(showDetails || size === 'lg') && (
           <>
