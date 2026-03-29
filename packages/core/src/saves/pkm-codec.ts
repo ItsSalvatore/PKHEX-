@@ -116,30 +116,28 @@ export function decryptPK45(data: Uint8Array): Uint8Array {
   for (let i = 8; i < 136; i += 2) {
     seed = (lcrnNext(seed) >>> 0);
     const val = (seed >>> 16) & 0xFFFF;
-    const orig = readU16LE(result, i);
-    writeU16LE(result, i, orig ^ val);
+    writeU16LE(result, i, readU16LE(result, i) ^ val);
+  }
+
+  // PKHeX PokeCrypto.Decrypt45: party stats XOR (PID) while main block is still shuffled
+  if (data.length > 136) {
+    let battleSeed = pid >>> 0;
+    for (let i = 136; i < data.length; i += 2) {
+      battleSeed = (lcrnNext(battleSeed) >>> 0);
+      const val = (battleSeed >>> 16) & 0xFFFF;
+      writeU16LE(result, i, readU16LE(result, i) ^ val);
+    }
   }
 
   const sv = ((pid >>> 13) & 31) % 24;
   const order = BLOCK_POSITION_INVERT[sv];
-  const unshuffled = new Uint8Array(result);
+  const plain = new Uint8Array(result);
   for (let i = 0; i < 4; i++) {
     const src = 8 + order[i] * 32;
-    const dst = 8 + i * 32;
-    unshuffled.set(result.subarray(src, src + 32), dst);
+    plain.set(result.subarray(src, src + 32), 8 + i * 32);
   }
 
-  if (data.length > 136) {
-    let battleSeed = pid;
-    for (let i = 136; i < data.length; i += 2) {
-      battleSeed = (lcrnNext(battleSeed) >>> 0);
-      const val = (battleSeed >>> 16) & 0xFFFF;
-      const orig = readU16LE(unshuffled, i);
-      writeU16LE(unshuffled, i, orig ^ val);
-    }
-  }
-
-  return unshuffled;
+  return plain;
 }
 
 export function encryptPK45(decrypted: Uint8Array, storedSize: number): Uint8Array {
@@ -197,12 +195,21 @@ export function readPK45(encrypted: Uint8Array, gen: number): Pokemon {
     hp: data[0x18], atk: data[0x19], def: data[0x1A],
     spe: data[0x1B], spa: data[0x1C], spd: data[0x1D],
   };
-  pkm.moves = [
-    { id: readU16LE(data, 0x28), pp: data[0x30], ppUps: data[0x34] & 3 },
-    { id: readU16LE(data, 0x2A), pp: data[0x31], ppUps: (data[0x34] >> 2) & 3 },
-    { id: readU16LE(data, 0x2C), pp: data[0x32], ppUps: (data[0x34] >> 4) & 3 },
-    { id: readU16LE(data, 0x2E), pp: data[0x33], ppUps: (data[0x34] >> 6) & 3 },
-  ];
+  if (gen >= 5) {
+    pkm.moves = [
+      { id: readU16LE(data, 0x28), pp: data[0x30], ppUps: data[0x34] & 3 },
+      { id: readU16LE(data, 0x2A), pp: data[0x31], ppUps: data[0x35] & 3 },
+      { id: readU16LE(data, 0x2C), pp: data[0x32], ppUps: data[0x36] & 3 },
+      { id: readU16LE(data, 0x2E), pp: data[0x33], ppUps: data[0x37] & 3 },
+    ];
+  } else {
+    pkm.moves = [
+      { id: readU16LE(data, 0x28), pp: data[0x30], ppUps: data[0x34] & 3 },
+      { id: readU16LE(data, 0x2A), pp: data[0x31], ppUps: (data[0x34] >> 2) & 3 },
+      { id: readU16LE(data, 0x2C), pp: data[0x32], ppUps: (data[0x34] >> 4) & 3 },
+      { id: readU16LE(data, 0x2E), pp: data[0x33], ppUps: (data[0x34] >> 6) & 3 },
+    ];
+  }
   const ivbits = readU32LE(data, 0x38);
   pkm.ivs = {
     hp: ivbits & 0x1F, atk: (ivbits >> 5) & 0x1F,
@@ -213,10 +220,16 @@ export function readPK45(encrypted: Uint8Array, gen: number): Pokemon {
   const formGender = data[0x40];
   pkm.form = (formGender >> 3) & 0x1F;
   pkm.gender = ((formGender >> 1) & 3) as PokemonGender;
-  pkm.nature = (pkm.pid % 25) as PokemonNature;
+  if (gen >= 5) {
+    const n = data[0x41];
+    pkm.nature = (n <= 24 ? n : (pkm.pid % 25)) as PokemonNature;
+  } else {
+    pkm.nature = (pkm.pid % 25) as PokemonNature;
+  }
   pkm.isShiny = ((pkm.otId ^ pkm.secretId ^ (pkm.pid >>> 16) ^ (pkm.pid & 0xFFFF)) < 8);
-  pkm.nickname = readString(data, 0x48, 11, false);
-  pkm.otName = readString(data, 0x68, 8, false);
+  // Gen 4/5: UTF-16LE in save (PKHeX StringConverter4/5), max 10 nickname / 7 OT chars + 0xFFFF term
+  pkm.nickname = readString(data, 0x48, 11, true);
+  pkm.otName = readString(data, 0x68, 8, true);
   pkm.metLocation = readU16LE(data, 0x80);
   pkm.metLevel = data[0x84] & 0x7F;
   pkm.ball = data[0x83];
@@ -226,7 +239,12 @@ export function readPK45(encrypted: Uint8Array, gen: number): Pokemon {
       def: readU16LE(data, 0x94), spe: readU16LE(data, 0x96),
       spa: readU16LE(data, 0x98), spd: readU16LE(data, 0x9A),
     };
-    pkm.level = data[0x8C];
+    const partyLevel = data[0x8C];
+    if (partyLevel >= 1 && partyLevel <= 100) {
+      pkm.level = partyLevel;
+    } else {
+      pkm.level = getLevelFromTotalExperience(pkm.exp, getSpeciesGrowthRateId(pkm.species));
+    }
   } else {
     pkm.level = getLevelFromTotalExperience(pkm.exp, getSpeciesGrowthRateId(pkm.species));
   }
@@ -250,10 +268,17 @@ export function writePK45Fields(pkm: Pokemon, gen: number): Uint8Array {
     writeU16LE(decrypted, 0x28 + i * 2, pkm.moves[i].id);
     decrypted[0x30 + i] = pkm.moves[i].pp;
   }
-  decrypted[0x34] = (pkm.moves[0].ppUps & 3)
-    | ((pkm.moves[1].ppUps & 3) << 2)
-    | ((pkm.moves[2].ppUps & 3) << 4)
-    | ((pkm.moves[3].ppUps & 3) << 6);
+  if (gen >= 5) {
+    for (let i = 0; i < 4; i++) {
+      decrypted[0x34 + i] = pkm.moves[i].ppUps & 3;
+    }
+    decrypted[0x41] = pkm.nature & 0xff;
+  } else {
+    decrypted[0x34] = (pkm.moves[0].ppUps & 3)
+      | ((pkm.moves[1].ppUps & 3) << 2)
+      | ((pkm.moves[2].ppUps & 3) << 4)
+      | ((pkm.moves[3].ppUps & 3) << 6);
+  }
   let ivbits = (pkm.ivs.hp & 0x1F)
     | ((pkm.ivs.atk & 0x1F) << 5)
     | ((pkm.ivs.def & 0x1F) << 10)
@@ -264,7 +289,7 @@ export function writePK45Fields(pkm: Pokemon, gen: number): Uint8Array {
   writeU32LE(decrypted, 0x38, ivbits >>> 0);
   const formGender = ((pkm.form & 0x1F) << 3) | ((pkm.gender & 3) << 1);
   decrypted[0x40] = formGender;
-  writeString(decrypted, 0x48, pkm.nickname, 11, false);
+  writeString(decrypted, 0x48, pkm.nickname, 11, true);
   decrypted[0x83] = pkm.ball;
   const storedSize = gen === 5 ? 136 : 136;
   return encryptPK45(decrypted, storedSize);
