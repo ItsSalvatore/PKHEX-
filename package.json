@@ -1,0 +1,29 @@
+{
+  "name": "pkhex-app",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "PKHeX - Cross-platform Pokémon Save Editor (PWA + React Native)",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/web",
+    "dev:mobile": "npm run start --workspace=apps/mobile",
+    "build": "npm run build --workspace=packages/core && npm run build --workspace=apps/web",
+    "build:core": "npm run build --workspace=packages/core",
+    "build:web": "npm run build --workspace=apps/web",
+    "preview": "npm run preview --workspace=apps/web",
+    "start": "NODE_ENV=production node server.mjs",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "compression": "^1.7.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
