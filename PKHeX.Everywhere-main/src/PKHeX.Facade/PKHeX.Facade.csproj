@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>PKHeX.Facade</AssemblyName>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <PackageId>PKHeX.Facade</PackageId>
+    <Description>A seamless facade to work with Pokemon save files based on PKHeX.Core.</Description>
+    <Authors>Arley Páudua</Authors>
+    <Company>Arley Páudua</Company>
+    <PackageProjectUrl>https://github.com/arleypadua/PKHeX.Everywhere</PackageProjectUrl>
+    <PackageLicenseUrl>https://github.com/arleypadua/PKHeX.Everywhere?tab=MIT-1-ov-file#readme</PackageLicenseUrl>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageTags>pokemon;pkhex</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Folder Include="Base/" />
+  </ItemGroup>
+
+<!--  Replaced with a local refernce to facilitate keeping in sync with latest changes-->
+<!--  <ItemGroup>-->
+<!--    <PackageReference Include="PKHeX.Core" Version="24.11.12" />-->
+<!--  </ItemGroup>-->
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\external\PKHeX-Plugins\PKHeX.Core.AutoMod\PKHeX.Core.AutoMod.csproj" />
+  </ItemGroup>
+
+</Project>

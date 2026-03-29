@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+        <DebugType>portable</DebugType>
+        <EmbedAllSources>true</EmbedAllSources>
+        <PublishSingleFile>true</PublishSingleFile>
+        <Version>2.1.0</Version>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <SupportedPlatform Include="browser"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\PKHeX.Web.Plugins\PKHeX.Web.Plugins.csproj" />
+    </ItemGroup>
+
+</Project>

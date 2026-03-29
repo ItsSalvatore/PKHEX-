@@ -1,0 +1,51 @@
+@code {
+
+    private readonly List<News> _news =
+    [
+        new (
+            DateOnly.ParseExact("2024-11-29", Format),
+            @<ui>
+                <ul>Introduced the PKHeX.Web Cloud (alpha) with up to 6 Pokémon stored in the cloud.</ul>
+            </ui>),
+        
+        new (
+            DateOnly.ParseExact("2024-11-30", Format),
+            @<ui>
+                <ul>Migrated to .NET 9</ul>
+                <ul>Upgraded PKHeX.Core and ALM plugins to latest</ul>
+                <ul>Added support for Battle Points.</ul>
+            </ui>),
+        
+        new (
+            DateOnly.ParseExact("2025-02-14", Format),
+            @<ui>
+                <ul>Minor bug fixes</ul>
+                <ul>News banner</ul>
+            </ui>),
+        
+        new (
+            DateOnly.ParseExact("2025-03-25", Format),
+            @<ui>
+                <ul>Introduced plugin error pages showing a list of errors whenever executing a plugin</ul>
+                <ul>Upgraded PKHeX.Core and ALM plugins to latest version</ul>
+            </ui>),
+        
+        new (
+            DateOnly.ParseExact("2025-05-01", Format),
+            @<ui>
+                <ul>Fixed exporting of Let's Go Eevee save files.</ul>
+                <ul>Update to privacy policy and cookie consent.</ul>
+                <ul>Upgraded PKHeX.Core and ALM plugins to latest version</ul>
+            </ui>),
+        
+        new (
+            DateOnly.ParseExact("2026-03-20", Format),
+            @<ui>
+                <ul>Upgraded PKHeX.Core and ALM plugins to latest version</ul>
+                <ul>Upgraded from .NET 9.x to 10.x</ul>
+                <ul>Small bug fixes</ul>
+            </ui>)
+    ];
+
+    private const string Format = "yyyy-MM-dd";
+}

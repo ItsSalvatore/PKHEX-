@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import type { Pokemon, IVs, EVs } from '@pkhex/core';
 import {
-  getSpeciesName, getMoveName, getItemName, getNatureName,
+  getSpeciesName, getPokemonDisplayName, getMoveName, getItemName, getNatureName,
   PokemonNature, PokemonGender,
   checkLegality, LegalityStatus,
   searchSpecies, searchMoves, searchItems,
@@ -134,8 +134,10 @@ export function PokemonEditor({ pokemon: initialPokemon, onBack }: PokemonEditor
         <div className="p-4">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h2 className="text-lg font-bold text-white">{pokemon.nickname || speciesName}</h2>
-              {pokemon.nickname && <p className="text-xs text-surface-400">{speciesName}</p>}
+              <h2 className="text-lg font-bold text-white">{getPokemonDisplayName(pokemon)}</h2>
+              {getPokemonDisplayName(pokemon) !== speciesName && (
+                <p className="text-xs text-surface-400">{speciesName}</p>
+              )}
             </div>
             <div className="text-right">
               <p className="text-base font-bold text-indigo-400">Lv. {pokemon.level}</p>

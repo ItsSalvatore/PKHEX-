@@ -66,12 +66,15 @@ async function main() {
 
       const genName = sp.generation?.name;
       const g = GEN_MAP[genName] ?? 1;
+      const grUrl = sp.growth_rate?.url;
+      const grId = grUrl ? parseInt(grUrl.split('/').filter(Boolean).pop(), 10) : 2;
+      const e = grId >= 1 && grId <= 6 ? grId : 2;
 
-      out[String(id)] = { t: [t1, t2], s, a, g };
+      out[String(id)] = { t: [t1, t2], s, a, g, e };
       if (id % 50 === 0) console.error('ok', id);
     } catch (e) {
       console.error('fail', id, e.message);
-      out[String(id)] = { t: [0, null], s: [1, 1, 1, 1, 1, 1], a: [0, 0, 0], g: 1 };
+      out[String(id)] = { t: [0, null], s: [1, 1, 1, 1, 1, 1], a: [0, 0, 0], g: 1, e: 2 };
     }
     await sleep(DELAY_MS);
   }

@@ -1,5 +1,5 @@
 import type { Pokemon } from '@pkhex/core';
-import { getSpeciesName, getNatureName } from '@pkhex/core';
+import { getPokemonDisplayName } from '@pkhex/core';
 import { PokemonSprite } from './PokemonSprite';
 import { clsx } from 'clsx';
 import { Sparkles } from 'lucide-react';
@@ -29,7 +29,7 @@ export function PokemonCard({ pokemon, selected, onClick, size = 'md', showDetai
     );
   }
 
-  const name = pokemon.nickname || getSpeciesName(pokemon.species);
+  const name = getPokemonDisplayName(pokemon);
 
   return (
     <button

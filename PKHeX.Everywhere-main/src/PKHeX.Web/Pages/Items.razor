@@ -1,0 +1,96 @@
+@page "/items"
+@using PKHeX.Facade.Repositories
+@using PKHeX.Web.Plugins
+@using PKHeX.Web.Services.Plugins
+
+<Flex Direction="FlexDirection.Vertical" Style="width: 100%;gap: 20px;">
+    <PageHeader BackIcon="true" Style="max-width: 100%">
+        <TitleTemplate>Items</TitleTemplate>
+
+        <PageHeaderExtra>
+            <ButtonOrMenu Actions="ExtraActions" />
+        </PageHeaderExtra>
+    </PageHeader>
+
+    <Tabs @bind-ActiveKey="@_activeKey" DefaultActiveKey="@DefaultActiveKey" Class="tab-scrollable" Animated>
+        @foreach (var inventoryType in InventoryTypes)
+        {
+            <TabPane Tab="@inventoryType" Key="@inventoryType">
+                <ItemsTable
+                    @key="@inventoryType"
+                    Inventory="Inventories?[inventoryType]"
+                    DataSource="@(Inventories?[inventoryType].Where(i => i.Definition.Id != ItemDefinition.None).ToList())"/>
+            </TabPane>
+        }
+    </Tabs>
+</Flex>
+
+@if (ActiveInventory is not null)
+{
+    <AddItemModal
+        @bind-Visible="@_addItemModalVisible"
+        TargetInventory="ActiveInventory"
+        OnOk="@HandleOk"
+        OnCancel="@HandleCancel"/>
+}
+
+@code {
+    [Inject] public required PlugInRuntime PlugInRuntime { get; set; }
+    [Inject] public required GameService GameService { get; set; }
+    [Inject] public required AnalyticsService Analytics { get; set; }
+
+    List<ButtonOrMenu.ButtonAction> ExtraActions => new()
+    {
+        new ()
+        {
+            Type = ButtonType.Primary,
+            Icon = IconType.Outline.Plus,
+            Label = "Add",
+            OnClickAsync = OnAddItemClick
+        }
+    };
+
+    string? _activeKey;
+
+    Inventories? Inventories => GameService.Game?.Trainer.Inventories;
+    Inventory? ActiveInventory => string.IsNullOrWhiteSpace(_activeKey) ? null : Inventories?[_activeKey];
+    string[] InventoryTypes => Inventories?.InventoryTypes.OrderBy(t => t).ToArray() ?? [];
+    string? DefaultActiveKey => InventoryTypes.FirstOrDefault();
+
+    #region Add Item Modal
+
+    bool _addItemModalVisible;
+
+    Task OnAddItemClick()
+    {
+        _addItemModalVisible = true;
+        return Task.CompletedTask;
+    }
+
+    async Task HandleOk(AddItemModal.ItemToBeAdded itemToBeAdded)
+    {
+        if (ActiveInventory is null) return;
+        ActiveInventory?.Set(itemToBeAdded.Id, itemToBeAdded.Count);
+
+        await PlugInRuntime.RunAll<IRunOnItemChanged>(h => h.OnItemChanged(new(itemToBeAdded.Id, itemToBeAdded.Count)));
+        _addItemModalVisible = false;
+
+        Track(itemToBeAdded);
+        
+        StateHasChanged();
+        ShouldRender();
+    }
+
+    private void Track(AddItemModal.ItemToBeAdded itemToBeAdded)
+    {
+        Analytics.TrackItemModified(itemToBeAdded);
+    }
+
+    private void HandleCancel()
+    {
+        _addItemModalVisible = false;
+    }
+
+    #endregion
+
+}

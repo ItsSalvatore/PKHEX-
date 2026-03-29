@@ -1,0 +1,123 @@
+name: PKHeX.Web
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'src/PKHeX.Web/**'
+      - 'src/PKHeX.Facade/**'
+      
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build_and_publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+          fetch-depth: 0
+          
+      - name: Update submodules to the latest commit
+        run: |
+          git submodule update --remote --recursive
+          
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install NPM dependencies and build PKHeX.Web/_js
+        run: |
+          cd src/PKHeX.Web/_js
+          
+          echo "VITE_FIREBASE_ENABLED=${{ vars.FIREBASE_ENABLED }}" >> .env
+          echo "VITE_FIREBASE_PROJECT_NAME=${{ secrets.FIREBASE_PROJECT_NAME }}" >> .env
+          echo "VITE_FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }}" >> .env
+          echo "VITE_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}" >> .env
+          echo "VITE_FIREBASE_APP_ID=${{ secrets.FIREBASE_APP_ID }}" >> .env
+          
+          npm ci
+          npm run build
+          
+          cd ../../../
+
+      - name: Install NPM dependencies and build PKHeX.Web/_blog
+        run: |
+          cd src/PKHeX.Web/_blog
+          
+          npm ci
+          npm run build
+          
+          cd ../../../
+          
+      - name: Restore dependencies
+        run: dotnet restore
+      - name: Build
+        run: dotnet build --no-restore
+      - name: Test
+        run: dotnet test --no-build --verbosity normal
+      - name: Modify appsettings.json
+        run: |
+          APPSETTINGS_FILE="src/PKHeX.Web/wwwroot/appsettings.Production.json"
+          
+          if [ ! -f "$APPSETTINGS_FILE" ]; then
+            echo "{}" > "$APPSETTINGS_FILE"
+          fi
+          
+          jq '
+            .BackendApi.Debugging = false | 
+            .BackendApi.Enabled = ${{ vars.BACKEND_API_ENABLED }} | 
+            .BackendApi.BaseUri = "${{ vars.BACKEND_API_BASE_URI }}"
+          ' "$APPSETTINGS_FILE" > tmp.json && mv tmp.json "$APPSETTINGS_FILE"
+          
+      - name: Publish
+        run: dotnet publish ./src/PKHeX.Web/PKHeX.Web.csproj -c Release -o ./src/PKHeX.Web/bin/pkhex-web-publish
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifact-pkhex-web
+          path: ./src/PKHeX.Web/bin/pkhex-web-publish/wwwroot
+          
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build_and_publish
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: List artifacts
+        run: ls -R artifacts
+        
+      - name: Checkout PKHeX.Web repository
+        uses: actions/checkout@v4
+        with:
+          repository: pkhex-web/pkhex-web.github.io
+          ref: gh-pages
+          path: pkhex-web
+          token: ${{ secrets.GIT_HUB_PKHEX_WEB_TOKEN }}
+
+      - name: Copy artifacts to Github pages repository
+        run: |
+          cp -R artifacts/artifact-pkhex-web/* pkhex-web/
+
+      - name: Commit and push new artifacts
+        run: |
+          cd pkhex-web
+          touch .nojekyll
+          git config user.name "GitHub Actions Bot"
+          git config user.email "<>"
+          git add --all
+          git commit -m "Update PKHeX.Web artifacts"
+          git push origin
+          cd ..

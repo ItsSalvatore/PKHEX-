@@ -1,0 +1,71 @@
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="AntDesign" Version="1.6.0" />
+        <PackageReference Include="AntDesign.Charts" Version="0.9.0" />
+        <PackageReference Include="Blazor-Analytics" Version="4.0.0" />
+        <PackageReference Include="Blazored.LocalStorage" Version="4.5.0"/>
+        <PackageReference Include="BytexDigital.Blazor.Components.CookieConsent" Version="1.3.0" />
+        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.5" />
+        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.5" PrivateAssets="all" />
+        <PackageReference Include="Sentry.AspNetCore.Blazor.WebAssembly" Version="6.2.0" />
+        <PackageReference Include="System.Runtime.Caching" Version="10.0.5" />
+        <PackageReference Include="TG.Blazor.IndexedDB" Version="1.5.0-preview" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\PKHeX.Facade\PKHeX.Facade.csproj"/>
+        <ProjectReference Include="..\PKHeX.Web.Plugins\PKHeX.Web.Plugins.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Update="wwwroot\data\savedata.bin">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Update="wwwroot\plugins\pkhexwebplugins.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Update="wwwroot\appsettings.json">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Update="wwwroot\appsettings.Development.json">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Update="_blog\font\pkmgb.ttf">
+          <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+          <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        </Content>
+        <Content Update="wwwroot\robots.txt">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Update="wwwroot\favicon.svg">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Update="_blog\favicon.svg">
+          <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+          <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+        <AdditionalFiles Include="Components\Images\ItemIcon.razor"/>
+        <AdditionalFiles Include="Components\Images\PokemonIcon.razor"/>
+        <AdditionalFiles Include="Components\Images\PokemonImage.razor"/>
+        <AdditionalFiles Include="Components\Pokemons\PokemonDescription.razor"/>
+        <AdditionalFiles Include="Components\Pokemons\PokemonLegalityBanner.razor"/>
+        <AdditionalFiles Include="Components\Pokemons\PokemonMetConditions.razor"/>
+        <AdditionalFiles Include="Components\Selects\ItemSelect.razor"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Include="wwwroot\js\.gitignore" />
+    </ItemGroup>
+
+</Project>

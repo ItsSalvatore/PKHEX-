@@ -275,7 +275,7 @@ const GEN4_OFFSETS: Record<string, Gen4Offsets> = {
 
 function parseGen4(data: Uint8Array, fileName: string, version: GameVersion, sub: string): SaveFile {
   const off = GEN4_OFFSETS[sub] ?? GEN4_OFFSETS['DP'];
-  const trainerName = readString(data, off.trainerName, 8);
+  const trainerName = readString(data, off.trainerName, 8, false);
   const tid = readU16LE(data, off.tid);
   const sid = readU16LE(data, off.sid);
   const { displayTID, displaySID } = formatTID(tid, sid, 4);
@@ -313,7 +313,7 @@ function parseGen4(data: Uint8Array, fileName: string, version: GameVersion, sub
       } else pokemon.push(null);
     }
     const nameOff = off.boxNames + b * 0x28;
-    const boxName = nameOff + 0x28 <= data.length ? readString(data, nameOff, 20) : '';
+    const boxName = nameOff + 0x28 <= data.length ? readString(data, nameOff, 20, true) : '';
     boxes.push({ name: boxName || `Box ${b + 1}`, wallpaper: 0, pokemon });
   }
   return {
@@ -329,7 +329,7 @@ function parseGen4(data: Uint8Array, fileName: string, version: GameVersion, sub
 function parseGen5(data: Uint8Array, fileName: string, version: GameVersion, sub: string): SaveFile {
   const isBW = sub === 'BW';
   const playerBlock = 0x19400;
-  const trainerName = readString(data, playerBlock + 4, 8);
+  const trainerName = readString(data, playerBlock + 4, 8, false);
   const tid = readU16LE(data, playerBlock + 0x14);
   const sid = readU16LE(data, playerBlock + 0x16);
   const { displayTID, displaySID } = formatTID(tid, sid, 5);
@@ -388,7 +388,7 @@ function parseGen5(data: Uint8Array, fileName: string, version: GameVersion, sub
 function parseGen6(data: Uint8Array, fileName: string, version: GameVersion, sub: string): SaveFile {
   const isXY = sub === 'XY';
   const nameOff = isXY ? 0x14000 : 0x14000;
-  const trainerName = readString(data, nameOff, 12);
+  const trainerName = readString(data, nameOff, 12, true);
   const tidOff = nameOff + 0x10;
   const tid = readU16LE(data, tidOff);
   const sid = readU16LE(data, tidOff + 2);
@@ -441,7 +441,7 @@ function parseGen6(data: Uint8Array, fileName: string, version: GameVersion, sub
 function parseGen7(data: Uint8Array, fileName: string, version: GameVersion, sub: string): SaveFile {
   const isSM = sub === 'SM';
   const nameOff = isSM ? 0x01200 : 0x01200;
-  const trainerName = readString(data, nameOff, 12);
+  const trainerName = readString(data, nameOff, 12, true);
   const tidOff = nameOff + 0x10;
   const tid = readU16LE(data, tidOff);
   const sid = readU16LE(data, tidOff + 2);
@@ -535,7 +535,7 @@ function parseGen8(data: Uint8Array, fileName: string, version: GameVersion): Sa
 
 function parseGen8Trainer(data: Uint8Array, version: GameVersion): TrainerInfo {
   const nameOff = 0x0B0;
-  const trainerName = readString(data, nameOff, 12);
+  const trainerName = readString(data, nameOff, 12, true);
   const tid = readU16LE(data, nameOff + 0x18);
   const sid = readU16LE(data, nameOff + 0x1A);
   const { displayTID, displaySID } = formatTID(tid, sid, 8);
@@ -598,7 +598,7 @@ function parseGen9(data: Uint8Array, fileName: string, version: GameVersion): Sa
 
 function parseGen9Trainer(data: Uint8Array, version: GameVersion): TrainerInfo {
   const nameOff = 0x0B0;
-  const trainerName = readString(data, nameOff, 12);
+  const trainerName = readString(data, nameOff, 12, true);
   const tid = readU16LE(data, nameOff + 0x18);
   const sid = readU16LE(data, nameOff + 0x1A);
   const { displayTID, displaySID } = formatTID(tid, sid, 9);

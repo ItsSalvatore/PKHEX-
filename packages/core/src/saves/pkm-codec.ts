@@ -1,6 +1,8 @@
 import { readU16LE, readU32LE, writeU16LE, writeU32LE, readString, writeString } from './detector.js';
 import { type Pokemon, PokemonGender, PokemonNature, createEmptyPokemon } from '../structures/pokemon.js';
 import { computeChecksum16, lcrnNext, decryptArray, encryptArray } from '../util/crypto.js';
+import { getLevelFromTotalExperience } from '../data/experience.js';
+import { getSpeciesGrowthRateId } from '../data/pokedex.js';
 
 const BLOCK_POSITION: number[][] = [
   [0, 1, 2, 3], [0, 1, 3, 2], [0, 2, 1, 3], [0, 3, 1, 2], [0, 2, 3, 1], [0, 3, 2, 1],
@@ -14,18 +16,6 @@ const BLOCK_POSITION_INVERT: number[][] = BLOCK_POSITION.map(order => {
   for (let i = 0; i < 4; i++) inv[order[i]] = i;
   return inv;
 });
-
-function getExperienceForLevel(level: number): number {
-  if (level <= 1) return 0;
-  return Math.floor(Math.pow(level, 3));
-}
-
-function getLevelFromExp(exp: number): number {
-  for (let l = 100; l >= 1; l--) {
-    if (exp >= getExperienceForLevel(l)) return l;
-  }
-  return 1;
-}
 
 // -- Gen 3 PKM (80 bytes stored, 100 bytes party) --
 
@@ -77,6 +67,8 @@ export function readPK3(encrypted: Uint8Array): Pokemon {
   pkm.pid = readU32LE(data, 0);
   pkm.otId = readU16LE(data, 4);
   pkm.secretId = readU16LE(data, 6);
+  pkm.nickname = readString(data, 0x08, 10, false);
+  pkm.otName = readString(data, 0x14, 7, false);
   pkm.species = readU16LE(data, 32);
   pkm.heldItem = readU16LE(data, 34);
   pkm.exp = readU32LE(data, 36);
@@ -103,9 +95,13 @@ export function readPK3(encrypted: Uint8Array): Pokemon {
   pkm.isEgg = !!((ivbits >> 30) & 1);
   pkm.nature = (pkm.pid % 25) as PokemonNature;
   pkm.ability = data[40] & 1;
-  pkm.level = getLevelFromExp(pkm.exp);
+  if (encrypted.length >= 100) {
+    pkm.level = data[0x54];
+  } else {
+    pkm.level = getLevelFromTotalExperience(pkm.exp, getSpeciesGrowthRateId(pkm.species));
+  }
   pkm.isShiny = ((pkm.otId ^ pkm.secretId ^ (pkm.pid >>> 16) ^ (pkm.pid & 0xFFFF)) < 8);
-  pkm.language = data[18];
+  pkm.language = data[0x12];
   return pkm;
 }
 
@@ -219,20 +215,20 @@ export function readPK45(encrypted: Uint8Array, gen: number): Pokemon {
   pkm.gender = ((formGender >> 1) & 3) as PokemonGender;
   pkm.nature = (pkm.pid % 25) as PokemonNature;
   pkm.isShiny = ((pkm.otId ^ pkm.secretId ^ (pkm.pid >>> 16) ^ (pkm.pid & 0xFFFF)) < 8);
-  pkm.nickname = readString(data, 0x48, 11);
-  pkm.otName = readString(data, 0x68, 8);
+  pkm.nickname = readString(data, 0x48, 11, false);
+  pkm.otName = readString(data, 0x68, 8, false);
   pkm.metLocation = readU16LE(data, 0x80);
   pkm.metLevel = data[0x84] & 0x7F;
   pkm.ball = data[0x83];
-  pkm.level = getLevelFromExp(pkm.exp);
-
-  if (encrypted.length >= 236) {
+  if (encrypted.length > 136) {
     pkm.stats = {
       hp: readU16LE(data, 0x8E), atk: readU16LE(data, 0x92),
       def: readU16LE(data, 0x94), spe: readU16LE(data, 0x96),
       spa: readU16LE(data, 0x98), spd: readU16LE(data, 0x9A),
     };
     pkm.level = data[0x8C];
+  } else {
+    pkm.level = getLevelFromTotalExperience(pkm.exp, getSpeciesGrowthRateId(pkm.species));
   }
 
   return pkm;
@@ -268,7 +264,7 @@ export function writePK45Fields(pkm: Pokemon, gen: number): Uint8Array {
   writeU32LE(decrypted, 0x38, ivbits >>> 0);
   const formGender = ((pkm.form & 0x1F) << 3) | ((pkm.gender & 3) << 1);
   decrypted[0x40] = formGender;
-  writeString(decrypted, 0x48, pkm.nickname, 11);
+  writeString(decrypted, 0x48, pkm.nickname, 11, false);
   decrypted[0x83] = pkm.ball;
   const storedSize = gen === 5 ? 136 : 136;
   return encryptPK45(decrypted, storedSize);
@@ -383,21 +379,21 @@ export function readPK67(encrypted: Uint8Array, gen: number): Pokemon {
   };
   pkm.isEgg = !!((ivbits >> 30) & 1);
   pkm.isShiny = ((pkm.otId ^ pkm.secretId ^ (pkm.pid >>> 16) ^ (pkm.pid & 0xFFFF)) < 16);
-  pkm.nickname = readString(data, 0x40, 12);
-  pkm.otName = readString(data, 0xB0, 12);
+  pkm.nickname = readString(data, 0x40, 12, true);
+  pkm.otName = readString(data, 0xB0, 12, true);
   pkm.ball = data[0xDC];
   pkm.metLevel = data[0xDD] & 0x7F;
   pkm.metLocation = readU16LE(data, 0xD2);
   pkm.language = data[0xE3];
-  pkm.level = getLevelFromExp(pkm.exp);
-
-  if (encrypted.length >= 260) {
+  if (encrypted.length > 232) {
     pkm.stats = {
       hp: readU16LE(data, 0xF2), atk: readU16LE(data, 0xF6),
       def: readU16LE(data, 0xF8), spe: readU16LE(data, 0xFA),
       spa: readU16LE(data, 0xFC), spd: readU16LE(data, 0xFE),
     };
     pkm.level = data[0xEC];
+  } else {
+    pkm.level = getLevelFromTotalExperience(pkm.exp, getSpeciesGrowthRateId(pkm.species));
   }
 
   return pkm;
@@ -431,7 +427,7 @@ export function writePK67Fields(pkm: Pokemon): Uint8Array {
     | ((pkm.ivs.spd & 0x1F) << 25);
   if (pkm.isEgg) ivbits |= (1 << 30);
   writeU32LE(decrypted, 0x74, ivbits >>> 0);
-  writeString(decrypted, 0x40, pkm.nickname, 12);
+  writeString(decrypted, 0x40, pkm.nickname, 12, true);
   decrypted[0xDC] = pkm.ball;
   return encryptPK67(decrypted);
 }
@@ -546,24 +542,24 @@ export function readPK89(encrypted: Uint8Array, gen: number): Pokemon {
   };
   pkm.isEgg = !!((ivbits >> 30) & 1);
   pkm.isShiny = ((pkm.otId ^ pkm.secretId ^ (pkm.pid >>> 16) ^ (pkm.pid & 0xFFFF)) < 16);
-  pkm.nickname = readString(data, 0x58, 12);
-  pkm.otName = readString(data, 0xF8, 12);
+  pkm.nickname = readString(data, 0x58, 12, true);
+  pkm.otName = readString(data, 0xF8, 12, true);
   pkm.ball = data[0x124];
   pkm.metLevel = data[0x125] & 0x7F;
   pkm.metLocation = readU16LE(data, 0x126);
   pkm.language = data[0x135];
-  pkm.level = getLevelFromExp(pkm.exp);
-
   if (gen >= 8) pkm.dynamaxLevel = data[0x144];
   if (gen >= 9) pkm.teraType = data[0x94];
 
-  if (encrypted.length >= 376) {
+  if (encrypted.length > 344) {
     pkm.stats = {
       hp: readU16LE(data, 0x14A), atk: readU16LE(data, 0x14E),
       def: readU16LE(data, 0x150), spe: readU16LE(data, 0x152),
       spa: readU16LE(data, 0x154), spd: readU16LE(data, 0x156),
     };
     pkm.level = data[0x148];
+  } else {
+    pkm.level = getLevelFromTotalExperience(pkm.exp, getSpeciesGrowthRateId(pkm.species));
   }
 
   return pkm;
@@ -598,7 +594,7 @@ export function writePK89Fields(pkm: Pokemon, gen: number): Uint8Array {
     | ((pkm.ivs.spd & 0x1F) << 25);
   if (pkm.isEgg) ivbits |= (1 << 30);
   writeU32LE(decrypted, 0x8C, ivbits >>> 0);
-  writeString(decrypted, 0x58, pkm.nickname, 12);
+  writeString(decrypted, 0x58, pkm.nickname, 12, true);
   decrypted[0x124] = pkm.ball;
   if (gen >= 8 && pkm.dynamaxLevel !== undefined) decrypted[0x144] = pkm.dynamaxLevel;
   if (gen >= 9 && pkm.teraType !== undefined) decrypted[0x94] = pkm.teraType;

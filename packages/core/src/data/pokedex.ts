@@ -7,6 +7,8 @@ export interface SpeciesPokedexEntry {
   s: [number, number, number, number, number, number];
   a: [number, number, number];
   g: number;
+  /** PokeAPI growth-rate id 1..6 (experience curve). */
+  e?: number;
 }
 
 const DATA = raw as unknown as Record<string, SpeciesPokedexEntry>;
@@ -37,6 +39,13 @@ export function getSpeciesAbilityIds(species: number): { first: number; second: 
 /** Generation the species first appeared (national dex context; not form-aware). */
 export function getSpeciesIntroGeneration(species: number): number | null {
   return getPokedexEntry(species)?.g ?? null;
+}
+
+/** PokeAPI growth-rate id for experience → level (defaults to medium / id 2). */
+export function getSpeciesGrowthRateId(species: number): number {
+  const e = getPokedexEntry(species)?.e;
+  if (e !== undefined && e >= 1 && e <= 6) return e;
+  return 2;
 }
 
 export function getDocumentedSpeciesIds(): number[] {

@@ -3,15 +3,13 @@ import { PokemonCard } from '@/components/pokemon/PokemonCard';
 import { PokemonEditor } from '@/components/pokemon/PokemonEditor';
 import { motion } from 'framer-motion';
 import { clsx } from 'clsx';
-import { Box, ChevronLeft, ChevronRight, Search } from 'lucide-react';
-import { useState } from 'react';
+import { Box, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export function Boxes() {
   const {
     saveFile, selectedBoxIndex, selectedSlot, selectedPokemon,
     selectBox, selectSlot,
   } = useAppStore();
-  const [searchQuery, setSearchQuery] = useState('');
 
   if (!saveFile) {
     return (
@@ -22,7 +20,7 @@ export function Boxes() {
   }
 
   const currentBox = saveFile.boxes[selectedBoxIndex];
-  const pokemonCount = currentBox?.pokemon.filter(p => p !== null).length ?? 0;
+  const pokemonCount = currentBox?.pokemon.filter(p => p !== null && p.species > 0).length ?? 0;
 
   return (
     <div className="space-y-6">
@@ -31,7 +29,7 @@ export function Boxes() {
           <Box className="w-6 h-6 text-purple-400" /> PC Boxes
         </h1>
         <p className="text-surface-400 text-sm mt-1">
-          {saveFile.boxCount} boxes · {saveFile.slotsPerBox} slots each
+          {saveFile.boxCount} boxes · up to {saveFile.slotsPerBox} Pokémon per box
         </p>
       </motion.div>
 
@@ -51,9 +49,11 @@ export function Boxes() {
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <div className="text-center">
-                <h3 className="text-sm font-semibold text-white">{currentBox?.name ?? 'Box'}</h3>
-                <p className="text-xs text-surface-400">{pokemonCount} Pokémon</p>
+              <div className="text-center min-w-0 px-2">
+                <h3 className="text-sm font-semibold text-white truncate">{currentBox?.name ?? 'Box'}</h3>
+                <p className="text-xs text-surface-400 tabular-nums">
+                  {pokemonCount}/{saveFile.slotsPerBox} in this box
+                </p>
               </div>
               <button
                 onClick={() => selectBox(Math.min(saveFile.boxCount - 1, selectedBoxIndex + 1))}
@@ -85,22 +85,23 @@ export function Boxes() {
             className="flex gap-2 flex-wrap"
           >
             {saveFile.boxes.map((box, i) => {
-              const count = box.pokemon.filter(p => p !== null).length;
+              const count = box.pokemon.filter(p => p !== null && p.species > 0).length;
               return (
                 <button
                   key={i}
                   onClick={() => selectBox(i)}
+                  title={`${box.name || `Box ${i + 1}`} — ${count} Pokémon`}
                   className={clsx(
-                    'px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
+                    'min-w-[2.75rem] px-2 py-2 rounded-lg text-xs font-semibold tabular-nums transition-all flex flex-col items-center gap-0.5',
                     i === selectedBoxIndex
-                      ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+                      ? 'bg-indigo-500/20 text-indigo-200 border border-indigo-500/30'
                       : count > 0
-                        ? 'glass text-surface-300 hover:text-white'
-                        : 'bg-white/[0.02] text-surface-600 hover:text-surface-400',
+                        ? 'glass text-surface-200 hover:text-white border border-transparent'
+                        : 'bg-white/[0.02] text-surface-500 hover:text-surface-400 border border-white/[0.04]',
                   )}
                 >
-                  {i + 1}
-                  {count > 0 && <span className="ml-1 text-[10px] opacity-60">({count})</span>}
+                  <span className="text-[10px] font-medium text-surface-500 leading-none">#{i + 1}</span>
+                  <span className="text-sm leading-none">{count}</span>
                 </button>
               );
             })}

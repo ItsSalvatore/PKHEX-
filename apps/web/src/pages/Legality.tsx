@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useAppStore } from '@/store/app-store';
 import {
-  checkLegality, LegalityStatus, getSpeciesName,
+  checkLegality, LegalityStatus, getSpeciesName, getPokemonDisplayName,
   type Pokemon, type LegalityResult,
 } from '@pkhex/core';
 import { PokemonSprite } from '@/components/pokemon/PokemonSprite';
@@ -116,7 +116,7 @@ export function Legality() {
               />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-white">
-                  {entry.pkm.nickname || getSpeciesName(entry.pkm.species)}
+                  {getPokemonDisplayName(entry.pkm)}
                   <span className="ml-2 text-xs text-surface-400">Lv.{entry.pkm.level}</span>
                 </p>
                 <p className="text-xs text-surface-500">{entry.location}</p>

@@ -1,0 +1,37 @@
+@using PKHeX.Web.Services.GeneralSettings
+@inject GeneralSettingsService SettingsService
+
+<Footer Style="text-align: center;">
+   <p>
+      @ApplicationName - edit pokemon save files.
+   </p>
+   <p>
+      Issues or feedback on <a href="@GitHubRepository" target="_blank">GitHub</a>
+   </p>
+   <Space Wrap>
+      <Split>
+         <Divider Type="DividerType.Vertical" />
+      </Split>
+      <ChildContent>
+         <SpaceItem>
+            <a href="/privacy-policy">Privacy Policy</a>
+         </SpaceItem>
+         <SpaceItem>
+            <a href="/terms-of-use">Terms of Use</a>
+         </SpaceItem>
+         <SpaceItem>
+            <a href="/credits">Credits</a>
+         </SpaceItem>
+         <SpaceItem>
+            <a href="/release-notes?since=@SettingsService.LastDateNewsSeen?.ToString("yyyy-MM-dd")">Release Notes</a>
+         </SpaceItem>
+         <SpaceItem>
+            <a href="/blog">Blog</a>
+         </SpaceItem>
+      </ChildContent>
+   </Space>
+</Footer>
+
+@code {
+   
+}

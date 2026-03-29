@@ -1,3 +1,5 @@
+import { getSpeciesName } from '../data/species.js';
+
 export enum PokemonGender {
   Male = 0,
   Female = 1,
@@ -128,6 +130,15 @@ export function createEmptyPokemon(): Pokemon {
 
 export function isSpeciesValid(species: number): boolean {
   return species > 0 && species <= 1025;
+}
+
+/** Nickname from save, or species name when unset / default (matches PKHeX-style display). */
+export function getPokemonDisplayName(pkm: Pick<Pokemon, 'nickname' | 'species'>): string {
+  const nick = (pkm.nickname ?? '').trim();
+  const speciesName = getSpeciesName(pkm.species);
+  if (pkm.species <= 0) return nick || '—';
+  if (!nick || nick.toLowerCase() === speciesName.toLowerCase()) return speciesName;
+  return nick;
 }
 
 export function calculateShiny(pid: number, tid: number, sid: number): boolean {

@@ -279,8 +279,9 @@ export function readString(data: Uint8Array, offset: number, maxLen: number, uni
   for (let i = 0; i < maxLen; i++) {
     const pos = offset + i * step;
     if (pos + step > data.length) break;
-    const code = unicode ? readU16LE(data, pos) : data[pos];
+    const code = unicode ? readU16LE(data, pos) : data[pos]!;
     if (code === 0 || code === 0xFFFF) break;
+    if (!unicode && code === 0xFF) break;
     chars.push(String.fromCharCode(code));
   }
   return chars.join('');

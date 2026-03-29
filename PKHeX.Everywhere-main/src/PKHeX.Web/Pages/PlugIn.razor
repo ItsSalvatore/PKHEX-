@@ -1,0 +1,255 @@
+@page "/plugins/{Id}"
+@using PKHeX.Web.Plugins
+@using PKHeX.Web.Services.Plugins
+@inject PlugInRegistry PlugInRegistry
+@inject PlugInLocalStorage PlugInStorage
+@inject PlugInFilesRepository PlugInFilesRepository
+@inject PlugInService PlugInService
+@inject INotificationService Notification
+@inject JsService Js
+
+@if (_plugIn != null)
+{
+    <Flex Direction="FlexDirection.Vertical" Style="width: 100%; gap: 20px;">
+        <PageHeader BackIcon="true" Style="max-width: 100%">
+            <TitleTemplate>@_plugIn.Settings.Manifest.PlugInName</TitleTemplate>
+
+            <PageHeaderExtra>
+                @if (_plugIn.HasNewerVersion)
+                {
+                    <Button
+                        Type="@ButtonType.Primary"
+                        OnClick="HandleUpdateClick">
+                        Update
+                    </Button>
+                }
+            </PageHeaderExtra>
+        </PageHeader>
+
+        <ResponsibleDescriptions @key="_plugIn" Bordered Size="DescriptionsSize.Small" Style="width: 100%">
+            <DescriptionsItem Title="Name">
+                <LabelOrLink
+                    Label="@_plugIn.Settings.Manifest.PlugInName"
+                    Href="@_plugIn.Settings.Manifest.ProjectUrl"/>
+            </DescriptionsItem>
+            <DescriptionsItem Title="Description">@_plugIn.Settings.Manifest.Description</DescriptionsItem>
+            <DescriptionsItem Title="Version">@_plugIn.Version</DescriptionsItem>
+            <DescriptionsItem Title="Enabled">
+                <Switch
+                    @bind-Value="@_plugIn.Enabled"/>
+            </DescriptionsItem>
+
+            @if (!string.IsNullOrWhiteSpace(_plugIn.PublicKeyToken))
+            {
+                <DescriptionsItem Title="Public Key">@_plugIn.PublicKeyToken</DescriptionsItem>
+            }
+
+            @foreach (var (key, _) in _plugIn.Settings.All)
+            {
+                <DescriptionsItem Title="@key" @key="key">
+                    @RenderSettings(key, _plugIn.Settings.GetOrDefault(key))
+                </DescriptionsItem>
+            }
+        </ResponsibleDescriptions>
+
+        <Table
+            TItem="PlugInFeatures"
+            DataSource="@_features"
+            @bind-PageIndex="_pageIndex"
+            @bind-PageSize="_pageSize"
+            RowKey="@(x => x.Hook.GetType().Name)"
+            Size="TableSize.Small"
+            Responsive
+            EnableVirtualization>
+            <PropertyColumn Title="Description" Property="@(c => c.Hook.Description)" Sortable Filterable/>
+            <ActionColumn Title="Enabled">
+                <Space Size=@("middle")>
+                    <SpaceItem>
+                        <Switch
+                            Value="@_plugIn.IsHookEnabled(context.Hook)"
+                            Disabled="@(!_plugIn.Enabled)"
+                            OnChange="newValue => ToggleFeature(context.Hook, newValue)"/>
+                    </SpaceItem>
+                </Space>
+            </ActionColumn>
+        </Table>
+        
+        @if (!string.IsNullOrWhiteSpace(_plugIn.Settings.Manifest.Information))
+        {
+            <Alert
+                Type="@AlertType.Info"
+                ShowIcon="true">
+                @_plugIn.Settings.Manifest.Information
+            </Alert>
+        }
+    </Flex>
+}
+
+<GenericPlugInFailureAlert
+    @bind-Error="_plugInLoadError"/>
+
+@code {
+    [Parameter] public required string Id { get; set; }
+
+    private LoadedPlugIn? _plugIn;
+    private List<PlugInFeatures> _features = [];
+
+    private Dictionary<string, InputFile?> _fileSettingInputReferences = [];
+    private InputFile? FileSettingInputRef
+    {
+        get => null;
+        set => _fileSettingInputReferences[value?.AdditionalAttributes?["key"].ToString() ?? ""] = value;
+    }
+
+    private int _pageIndex = 1;
+    private int _pageSize = 20;
+    private Exception? _plugInLoadError;
+
+    protected override void OnParametersSet()
+    {
+        LoadPlugin();
+    }
+
+    protected override void OnInitialized()
+    {
+        LoadPlugin();
+    }
+
+    private void LoadPlugin()
+    {
+        try
+        {
+            _plugIn = PlugInRegistry.GetBy(Id);
+            _features = PlugInRegistry
+                .GetAllHooksOf(_plugIn)
+                .Select(p => new PlugInFeatures { Hook = p })
+                .ToList();
+
+            ShouldRender();
+        }
+        catch (Exception e)
+        {
+            _plugIn = null;
+            _features = [];
+            _plugInLoadError = e;
+        }
+    }
+
+    private RenderFragment RenderSettings(string key, Settings.SettingValue? value) =>
+        value switch
+        {
+            Settings.SettingValue.StringValue stringValue => RenderStringSettings(key, stringValue),
+            Settings.SettingValue.BooleanValue booleanValue => RenderBooleanSettings(key, booleanValue),
+            Settings.SettingValue.IntegerValue integerValue => RenderIntegerSettings(key, integerValue),
+            Settings.SettingValue.FileValue fileValue => RenderFileSettings(key, fileValue),
+            _ => @<span></span>
+        };
+
+    private RenderFragment RenderStringSettings(string key, Settings.SettingValue.StringValue stringValue) =>
+        @<Input
+             TValue="string"
+             ReadOnly="@stringValue.ReadOnly"
+             Value="@stringValue.Value"
+             ValueChanged="newValue => SetSettingValue(key, stringValue with { Value = newValue })"/>;
+
+    private RenderFragment RenderBooleanSettings(string key, Settings.SettingValue.BooleanValue booleanValue) =>
+        @<Switch
+             Disabled="@booleanValue.ReadOnly"
+             Value="@booleanValue.Value"
+             OnChange="newValue => SetSettingValue(key, booleanValue with { Value = newValue })"/>;
+
+
+    private RenderFragment RenderIntegerSettings(string key, Settings.SettingValue.IntegerValue integerValue) =>
+        @<AntDesign.InputNumber
+             TValue="int"
+             Disabled="@integerValue.ReadOnly"
+             Value="@integerValue.Value"
+             OnChange="newValue => SetSettingValue(key, integerValue with { Value = newValue })"/>;
+
+    private RenderFragment RenderFileSettings(string key, Settings.SettingValue.FileValue fileValue) =>
+        fileValue.Value.Any()
+            ? @<Space>
+                  <span @key="key">@fileValue.FileName</span>
+                  <Button
+                      Danger
+                      Type="@ButtonType.Link"
+                      Icon="@IconType.Outline.Close"
+                      OnClick="() => RemoveFileSettings(key)">
+                  </Button>
+              </Space>
+            : @<div @key="key">
+                  <Button Type="@ButtonType.Link" OnClick="() => HandleUploadFileSettingClick(key)">Upload</Button>
+                  <InputFile
+                      OnChange="e => PersistFileSettings(key, e)"
+                      key="@key"
+                      @ref="FileSettingInputRef"
+                      class="hidden-file-input">
+                  </InputFile>
+              </div>;
+
+    private async Task SetSettingValue(string key, Settings.SettingValue value)
+    {
+        ArgumentNullException.ThrowIfNull(_plugIn, nameof(_plugIn));
+
+        _plugIn.Settings[key] = value;
+
+        await PlugInStorage.Persist(_plugIn);
+    }
+
+    private async Task ToggleFeature(IPluginHook hook, bool newValue)
+    {
+        ArgumentNullException.ThrowIfNull(_plugIn, nameof(_plugIn));
+        _plugIn.SetToggle(hook, newValue);
+        await PlugInStorage.Persist(_plugIn);
+    }
+
+    private async Task HandleUpdateClick()
+    {
+        if (_plugIn is null) return;
+        await PlugInService.Update(_plugIn);
+
+        LoadPlugin();
+
+        _ = Notification.Open(new NotificationConfig
+        {
+            Message = "Plug-in updated with success",
+            NotificationType = NotificationType.Success
+        });
+    }
+    
+    private async Task HandleUploadFileSettingClick(string key)
+    {
+        var inputReference = _fileSettingInputReferences[key];
+        if (inputReference is null) return;
+
+        await Js.ClickOnAsync(inputReference.Element);
+    }
+    
+    private async Task PersistFileSettings(string key, InputFileChangeEventArgs e)
+    {
+        if (_plugIn is null) return;
+        
+        using MemoryStream ms = new MemoryStream();
+        await e.File.OpenReadStream(24 * 1024 * 1000).CopyToAsync(ms);
+
+        _plugIn.Settings[key] = new Settings.SettingValue.FileValue(ms.ToArray(), e.File.Name);
+        await PlugInStorage.Persist(_plugIn);
+    }
+
+    private async Task RemoveFileSettings(string key)
+    {
+        if (_plugIn is null) return;
+        var file = _plugIn.Settings[key] as Settings.SettingValue.FileValue;
+        if (file is null) return;
+
+        _plugIn.Settings[key] = Settings.SettingValue.FileValue.Empty;
+        await PlugInFilesRepository.Remove(_plugIn.Id, file.FileName);
+        await PlugInStorage.Persist(_plugIn);
+    }
+
+    public class PlugInFeatures
+    {
+        public IPluginHook Hook { get; init; } = default!;
+    }
+
+}
