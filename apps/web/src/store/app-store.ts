@@ -24,7 +24,7 @@ export interface AppState {
   recentFiles: Array<{ name: string; date: string; size: number }>;
   theme: 'dark' | 'light';
 
-  loadSaveFile: (data: Uint8Array, fileName: string) => void;
+  loadSaveFile: (data: Uint8Array, fileName: string) => boolean;
   closeSaveFile: () => void;
   exportSave: () => Uint8Array | null;
   selectBox: (index: number) => void;
@@ -66,8 +66,10 @@ export const useAppStore = create<AppState>((set, get) => ({
         isLoading: false,
         recentFiles: [entry, ...recent.filter(r => r.name !== fileName)].slice(0, 10),
       });
+      return true;
     } catch (e) {
       set({ isLoading: false, error: `Failed to load save: ${e}` });
+      return false;
     }
   },
 

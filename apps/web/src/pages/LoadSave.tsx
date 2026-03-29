@@ -2,7 +2,7 @@ import { useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/store/app-store';
 import { useFileDrop } from '@/hooks/use-file-drop';
-import { readFileAsArrayBuffer, ACCEPTED_EXTENSIONS, formatFileSize } from '@/utils/file-handler';
+import { readFileAsArrayBuffer, KNOWN_SAVE_EXTENSIONS_LABEL, SAVE_FILE_INPUT_ACCEPT } from '@/utils/file-handler';
 import { motion } from 'framer-motion';
 import { Upload, FileUp, HardDrive, Cloud, AlertCircle } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -14,8 +14,7 @@ export function LoadSave() {
 
   const handleFile = useCallback(async (file: File) => {
     const data = await readFileAsArrayBuffer(file);
-    loadSaveFile(data, file.name);
-    navigate('/');
+    if (loadSaveFile(data, file.name)) navigate('/');
   }, [loadSaveFile, navigate]);
 
   const handleDrop = useCallback(async (files: FileList) => {
@@ -27,11 +26,11 @@ export function LoadSave() {
   const handleInputChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) await handleFile(file);
+    e.target.value = '';
   }, [handleFile]);
 
   const { isDragging, handleDragOver, handleDragLeave, handleDrop: onDrop } = useFileDrop({
     onDrop: handleDrop,
-    accept: ACCEPTED_EXTENSIONS.split(','),
   });
 
   return (
@@ -62,7 +61,7 @@ export function LoadSave() {
         <input
           ref={inputRef}
           type="file"
-          accept={ACCEPTED_EXTENSIONS}
+          accept={SAVE_FILE_INPUT_ACCEPT}
           onChange={handleInputChange}
           className="hidden"
         />
@@ -82,7 +81,7 @@ export function LoadSave() {
         </h3>
         <p className="text-sm text-surface-400 mb-4">or click to browse</p>
         <p className="text-xs text-surface-500">
-          .sav, .dsv, .bin, .dat, .main, .pk4-.pk9, .wc6-.wc9
+          {KNOWN_SAVE_EXTENSIONS_LABEL} — or any file; format is detected from the data like PKHeX.
         </p>
       </motion.div>
 

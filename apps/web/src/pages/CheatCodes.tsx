@@ -1,32 +1,26 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   createCheatCodeDatabase,
   searchCheatCodes,
   getAvailableGames,
-  getAvailableCategories,
+  getCategoriesForGame,
+  getCheatsForGameAndCategory,
+  getWildTemplateForGame,
+  buildWildEncounterLines,
+  SPECIES_NAMES,
   type CheatCode,
   type CheatCodeDatabase,
   CheatCategory,
-  GameGeneration,
   GameVersion,
   GAME_NAMES,
 } from '@pkhex/core';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { clsx } from 'clsx';
 import {
-  Gamepad2, Search, Filter, Copy, Check, ChevronDown,
-  AlertTriangle, Zap, Joystick, Tag, BookOpen, Shield,
+  Gamepad2, Search, Copy, Check, ChevronDown, AlertTriangle, Zap, ExternalLink,
 } from 'lucide-react';
 
-const GEN_LABELS: Record<number, string> = {
-  3: 'Gen 3 (GBA)',
-  4: 'Gen 4 (NDS)',
-  5: 'Gen 5 (NDS)',
-  6: 'Gen 6 (3DS)',
-  7: 'Gen 7 (3DS)',
-  8: 'Gen 8 (Switch)',
-  9: 'Gen 9 (Switch)',
-};
+const WILD_KEY = '__wild_encounter__';
 
 const CATEGORY_ICONS: Partial<Record<CheatCategory, string>> = {
   [CheatCategory.WalkThroughWalls]: '🚶',
@@ -51,253 +45,372 @@ const CATEGORY_ICONS: Partial<Record<CheatCategory, string>> = {
   [CheatCategory.MasterCode]: '🔑',
 };
 
+const GEN_ORDER: GameVersion[][] = [
+  [GameVersion.Ruby, GameVersion.Sapphire, GameVersion.Emerald, GameVersion.FireRed, GameVersion.LeafGreen],
+  [GameVersion.Diamond, GameVersion.Pearl, GameVersion.Platinum, GameVersion.HeartGold, GameVersion.SoulSilver],
+  [GameVersion.Black, GameVersion.White, GameVersion.Black2, GameVersion.White2],
+  [GameVersion.X, GameVersion.Y, GameVersion.OmegaRuby, GameVersion.AlphaSapphire],
+  [GameVersion.Sun, GameVersion.Moon, GameVersion.UltraSun, GameVersion.UltraMoon],
+  [GameVersion.Sword, GameVersion.Shield, GameVersion.BrilliantDiamond, GameVersion.ShiningPearl, GameVersion.LegendsArceus],
+  [GameVersion.Scarlet, GameVersion.Violet],
+];
+
+function sortGamesByRelease(games: { version: GameVersion; name: string }[]) {
+  const order = new Map<GameVersion, number>();
+  let i = 0;
+  for (const row of GEN_ORDER) {
+    for (const v of row) {
+      order.set(v, i++);
+    }
+  }
+  return [...games].sort((a, b) => {
+    const oa = order.get(a.version) ?? 999;
+    const ob = order.get(b.version) ?? 999;
+    if (oa !== ob) return oa - ob;
+    return a.name.localeCompare(b.name);
+  });
+}
+
 export function CheatCodes() {
   const [db] = useState<CheatCodeDatabase>(() => createCheatCodeDatabase());
-  const [searchQuery, setSearchQuery] = useState('');
-  const [genFilter, setGenFilter] = useState<GameGeneration | null>(null);
-  const [gameFilter, setGameFilter] = useState<GameVersion | null>(null);
-  const [categoryFilter, setCategoryFilter] = useState<CheatCategory | null>(null);
-  const [showFilters, setShowFilters] = useState(false);
-  const [selectedCode, setSelectedCode] = useState<CheatCode | null>(null);
-  const [copiedId, setCopiedId] = useState<number | null>(null);
+  const sortedGames = useMemo(() => sortGamesByRelease(getAvailableGames(db)), [db]);
 
-  const filteredCodes = useMemo(() => {
-    let result = searchQuery ? searchCheatCodes(db, searchQuery) : db.codes;
-    if (genFilter !== null) result = result.filter(c => c.generation === genFilter);
-    if (gameFilter !== null) result = result.filter(c => c.game === gameFilter);
-    if (categoryFilter !== null) result = result.filter(c => c.category === categoryFilter);
-    return result;
-  }, [db, searchQuery, genFilter, gameFilter, categoryFilter]);
+  const [gameVersion, setGameVersion] = useState<GameVersion>(sortedGames[0]?.version ?? GameVersion.Platinum);
+  useEffect(() => {
+    if (sortedGames.length && !sortedGames.some(g => g.version === gameVersion)) {
+      setGameVersion(sortedGames[0].version);
+    }
+  }, [sortedGames, gameVersion]);
 
-  const availableGames = useMemo(() => getAvailableGames(db), [db]);
-  const availableCategories = useMemo(() => getAvailableCategories(db), [db]);
-  const generations = [3, 4, 5, 6, 7, 8, 9] as GameGeneration[];
+  const wildTemplate = getWildTemplateForGame(gameVersion);
+  const dbCategories = useMemo(
+    () => getCategoriesForGame(db, gameVersion),
+    [db, gameVersion],
+  );
 
-  const handleCopy = (code: CheatCode) => {
-    const text = code.codes.join('\n');
-    navigator.clipboard.writeText(text).then(() => {
-      setCopiedId(code.id);
-      setTimeout(() => setCopiedId(null), 2000);
+  const categoryKeys = useMemo(() => {
+    const keys: string[] = [];
+    if (wildTemplate) keys.push(WILD_KEY);
+    for (const c of dbCategories.sort((a, b) => a.localeCompare(b))) {
+      keys.push(c);
+    }
+    return keys;
+  }, [wildTemplate, dbCategories]);
+
+  const [categoryKey, setCategoryKey] = useState<string>(WILD_KEY);
+  useEffect(() => {
+    if (categoryKeys.includes(categoryKey)) return;
+    setCategoryKey(categoryKeys[0] ?? '');
+  }, [categoryKeys, categoryKey]);
+
+  const cheatsInCategory = useMemo(() => {
+    if (!categoryKey || categoryKey === WILD_KEY) return [];
+    return getCheatsForGameAndCategory(db, gameVersion, categoryKey as CheatCategory);
+  }, [db, gameVersion, categoryKey]);
+
+  const [cheatVariantIndex, setCheatVariantIndex] = useState(0);
+  useEffect(() => {
+    setCheatVariantIndex(0);
+  }, [categoryKey, gameVersion]);
+
+  const [speciesDex, setSpeciesDex] = useState(1);
+  useEffect(() => {
+    if (wildTemplate) {
+      setSpeciesDex(prev => Math.min(Math.max(prev, wildTemplate.dexMin), wildTemplate.dexMax));
+    }
+  }, [wildTemplate]);
+
+  const [pokemonFilter, setPokemonFilter] = useState('');
+  const speciesOptions = useMemo(() => {
+    if (!wildTemplate) return [];
+    const q = pokemonFilter.trim().toLowerCase();
+    const out: { dex: number; name: string }[] = [];
+    for (let d = wildTemplate.dexMin; d <= wildTemplate.dexMax; d++) {
+      const name = SPECIES_NAMES[d];
+      if (!name || name === '—') continue;
+      if (q && !`${d} ${name}`.toLowerCase().includes(q)) continue;
+      out.push({ dex: d, name });
+    }
+    return out;
+  }, [wildTemplate, pokemonFilter]);
+
+  const selectedDbCheat: CheatCode | null =
+    categoryKey !== WILD_KEY && cheatsInCategory.length > 0
+      ? cheatsInCategory[Math.min(cheatVariantIndex, cheatsInCategory.length - 1)]
+      : null;
+
+  const wildLines = useMemo(() => {
+    if (!wildTemplate || categoryKey !== WILD_KEY) return null;
+    return buildWildEncounterLines(wildTemplate, speciesDex);
+  }, [wildTemplate, categoryKey, speciesDex]);
+
+  const activeCodes: string[] | null =
+    categoryKey === WILD_KEY ? wildLines : selectedDbCheat?.codes ?? null;
+
+  const displayTitle =
+    categoryKey === WILD_KEY && wildTemplate
+      ? `Wild encounter: ${SPECIES_NAMES[speciesDex] ?? `#${speciesDex}`}`
+      : selectedDbCheat?.name ?? 'Select a cheat';
+
+  const displayDescription =
+    categoryKey === WILD_KEY && wildTemplate
+      ? `National Dex #${speciesDex} — ${wildTemplate.activationNote}`
+      : selectedDbCheat?.description ?? '';
+
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    if (!activeCodes?.length) return;
+    navigator.clipboard.writeText(activeCodes.join('\n')).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     });
   };
 
-  const gamesForGen = genFilter !== null
-    ? availableGames.filter(g => {
-        const c = db.codes.find(cc => cc.game === g.version);
-        return c && c.generation === genFilter;
-      })
-    : availableGames;
+  const [browseOpen, setBrowseOpen] = useState(false);
+  const [browseQuery, setBrowseQuery] = useState('');
+  const browseResults = useMemo(() => {
+    const list = browseQuery ? searchCheatCodes(db, browseQuery) : db.codes;
+    return list.filter(c => c.game === gameVersion);
+  }, [db, browseQuery, gameVersion]);
 
   return (
     <div className="space-y-6">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-          <Gamepad2 className="w-6 h-6 text-rose-400" /> Action Replay Codes
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+        <h1 className="text-xl font-semibold text-white flex items-center gap-2">
+          <Gamepad2 className="w-5 h-5 text-rose-400" /> Cheats
         </h1>
         <p className="text-surface-400 text-sm mt-1">
-          {db.totalCount} cheat codes from PokemonCoders & community databases
+          Pick a game and category; copy the lines below. Gen 4–5 wild Pokémon use the species list. Mostly from{' '}
+          <a
+            href="https://www.pokemoncoders.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-indigo-400 hover:text-indigo-300 inline-flex items-center gap-0.5"
+          >
+            PokemonCoders <ExternalLink className="w-3 h-3" />
+          </a>
+          .
         </p>
       </motion.div>
 
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="space-y-3">
-        <div className="flex gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
-            <input type="text" placeholder="Search cheats (e.g. 'rare candy', 'walk through', 'platinum')..."
-              value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="input-field pl-10" />
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+        className="glass rounded-2xl p-5 space-y-4"
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs text-surface-400 mb-1.5">Game</label>
+            <div className="relative">
+              <select
+                value={gameVersion}
+                onChange={e => setGameVersion(Number(e.target.value) as GameVersion)}
+                className="input-field w-full appearance-none pr-10 cursor-pointer"
+              >
+                {sortedGames.map(g => (
+                  <option key={g.version} value={g.version}>
+                    {g.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-500 pointer-events-none" />
+            </div>
           </div>
-          <button onClick={() => setShowFilters(!showFilters)}
-            className={clsx('btn-secondary flex items-center gap-2', showFilters && 'border-indigo-500/30')}>
-            <Filter className="w-4 h-4" /> Filters
-            <ChevronDown className={clsx('w-3 h-3 transition-transform', showFilters && 'rotate-180')} />
-          </button>
+
+          <div>
+            <label className="block text-xs text-surface-400 mb-1.5">Cheat category</label>
+            <div className="relative">
+              <select
+                value={categoryKey}
+                onChange={e => setCategoryKey(e.target.value)}
+                className="input-field w-full appearance-none pr-10 cursor-pointer"
+              >
+                {wildTemplate && (
+                  <option value={WILD_KEY}>Wild Pokémon (choose species)</option>
+                )}
+                {dbCategories.sort((a, b) => a.localeCompare(b)).map(cat => (
+                  <option key={cat} value={cat}>
+                    {CATEGORY_ICONS[cat] ?? '🔧'} {cat}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-500 pointer-events-none" />
+            </div>
+          </div>
         </div>
 
-        <AnimatePresence>
-          {showFilters && (
-            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-              <div className="glass rounded-xl p-4 space-y-4">
-                <div>
-                  <p className="text-xs text-surface-400 mb-2 flex items-center gap-1"><Joystick className="w-3 h-3" /> Generation</p>
-                  <div className="flex gap-2 flex-wrap">
-                    <button onClick={() => { setGenFilter(null); setGameFilter(null); }}
-                      className={clsx('px-3 py-1 rounded-lg text-xs transition-all', genFilter === null ? 'bg-rose-500/20 text-rose-300' : 'text-surface-400 hover:text-white')}>All</button>
-                    {generations.map(g => (
-                      <button key={g} onClick={() => { setGenFilter(genFilter === g ? null : g); setGameFilter(null); }}
-                        className={clsx('px-3 py-1 rounded-lg text-xs transition-all', genFilter === g ? 'bg-rose-500/20 text-rose-300' : 'text-surface-400 hover:text-white')}>
-                        {GEN_LABELS[g] ?? `Gen ${g}`}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-xs text-surface-400 mb-2 flex items-center gap-1"><Zap className="w-3 h-3" /> Game</p>
-                  <div className="flex gap-2 flex-wrap">
-                    <button onClick={() => setGameFilter(null)}
-                      className={clsx('px-3 py-1 rounded-lg text-xs transition-all', gameFilter === null ? 'bg-rose-500/20 text-rose-300' : 'text-surface-400 hover:text-white')}>All</button>
-                    {gamesForGen.map(g => (
-                      <button key={g.version} onClick={() => setGameFilter(gameFilter === g.version ? null : g.version)}
-                        className={clsx('px-3 py-1 rounded-lg text-xs transition-all', gameFilter === g.version ? 'bg-rose-500/20 text-rose-300' : 'text-surface-400 hover:text-white')}>
-                        {g.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-xs text-surface-400 mb-2 flex items-center gap-1"><Tag className="w-3 h-3" /> Category</p>
-                  <div className="flex gap-2 flex-wrap">
-                    <button onClick={() => setCategoryFilter(null)}
-                      className={clsx('px-3 py-1 rounded-lg text-xs transition-all', categoryFilter === null ? 'bg-rose-500/20 text-rose-300' : 'text-surface-400 hover:text-white')}>All</button>
-                    {availableCategories.map(cat => (
-                      <button key={cat} onClick={() => setCategoryFilter(categoryFilter === cat ? null : cat)}
-                        className={clsx('px-3 py-1 rounded-lg text-xs transition-all', categoryFilter === cat ? 'bg-rose-500/20 text-rose-300' : 'text-surface-400 hover:text-white')}>
-                        {CATEGORY_ICONS[cat] ?? '🔧'} {cat}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+        {categoryKey === WILD_KEY && wildTemplate && (
+          <div className="space-y-3 pt-1 border-t border-white/[0.06]">
+            <div className="flex items-center gap-2 text-xs text-surface-500">
+              <Zap className="w-3.5 h-3.5" />
+              <span>
+                Source:{' '}
+                <a
+                  href={wildTemplate.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-indigo-400 hover:text-indigo-300"
+                >
+                  {wildTemplate.gameName} cheats (PokemonCoders)
+                </a>
+              </span>
+            </div>
+            <div>
+              <label className="block text-xs text-surface-400 mb-1.5">Filter Pokémon</label>
+              <input
+                type="search"
+                placeholder="Search by name or Dex #…"
+                value={pokemonFilter}
+                onChange={e => setPokemonFilter(e.target.value)}
+                className="input-field w-full"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-surface-400 mb-1.5">Pokémon (national Dex)</label>
+              <div className="relative">
+                <select
+                  value={speciesDex}
+                  onChange={e => setSpeciesDex(Number(e.target.value))}
+                  className="input-field w-full appearance-none pr-10 cursor-pointer max-h-48 font-mono text-sm"
+                  size={1}
+                >
+                  {speciesOptions.map(({ dex, name }) => (
+                    <option key={dex} value={dex}>
+                      #{dex.toString().padStart(3, '0')} — {name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-500 pointer-events-none" />
               </div>
-            </motion.div>
+              <p className="text-[10px] text-surface-500 mt-1">
+                Dex {wildTemplate.dexMin}–{wildTemplate.dexMax} for {GAME_NAMES[gameVersion] ?? wildTemplate.gameName}.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {categoryKey !== WILD_KEY && cheatsInCategory.length > 1 && (
+          <div>
+            <label className="block text-xs text-surface-400 mb-1.5">Cheat variant</label>
+            <div className="relative">
+              <select
+                value={cheatVariantIndex}
+                onChange={e => setCheatVariantIndex(Number(e.target.value))}
+                className="input-field w-full appearance-none pr-10 cursor-pointer"
+              >
+                {cheatsInCategory.map((c, i) => (
+                  <option key={c.id} value={i}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-500 pointer-events-none" />
+            </div>
+          </div>
+        )}
+
+        <div className="rounded-lg border border-white/[0.08] bg-black/50 p-4 space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-medium text-white">{displayTitle}</h2>
+              {displayDescription ? (
+                <p className="text-xs text-surface-500 mt-0.5">{displayDescription}</p>
+              ) : null}
+              {selectedDbCheat ? (
+                <p className="text-[10px] text-surface-600 mt-1">
+                  {selectedDbCheat.codeType}
+                  {selectedDbCheat.masterCodeRequired ? ' · master code required' : ''}
+                </p>
+              ) : null}
+            </div>
+            <button
+              type="button"
+              onClick={handleCopy}
+              disabled={!activeCodes?.length}
+              className="btn-secondary text-xs py-1.5 px-3 flex items-center gap-1.5 flex-shrink-0 disabled:opacity-40"
+            >
+              {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
+              Copy
+            </button>
+          </div>
+
+          {activeCodes && activeCodes.length > 0 ? (
+            <pre className="font-mono text-[13px] leading-6 text-surface-200 whitespace-pre-wrap break-all select-all">
+              {activeCodes.join('\n')}
+            </pre>
+          ) : (
+            <p className="text-surface-500 text-sm">No code for this selection.</p>
           )}
-        </AnimatePresence>
+
+          {selectedDbCheat?.activationNote && (
+            <p className="text-xs text-surface-400 border-l-2 border-blue-500/40 pl-2 py-0.5">{selectedDbCheat.activationNote}</p>
+          )}
+          {selectedDbCheat?.warning && (
+            <p className="text-xs text-amber-200/90 border-l-2 border-amber-500/50 pl-2 py-0.5">{selectedDbCheat.warning}</p>
+          )}
+          {wildTemplate && categoryKey === WILD_KEY && wildTemplate.warning && (
+            <p className="text-xs text-amber-200/90 border-l-2 border-amber-500/50 pl-2 py-0.5">{wildTemplate.warning}</p>
+          )}
+        </div>
       </motion.div>
 
-      <p className="text-xs text-surface-500">{filteredCodes.length} codes found</p>
-
-      <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
-        <div className="xl:col-span-3 space-y-2 max-h-[75vh] overflow-y-auto pr-1">
-          {filteredCodes.length === 0 ? (
-            <div className="glass rounded-xl p-12 text-center">
-              <Gamepad2 className="w-12 h-12 text-surface-600 mx-auto mb-4" />
-              <p className="text-surface-400">No codes match your search</p>
-            </div>
-          ) : (
-            filteredCodes.map((code, i) => (
-              <motion.button key={code.id}
-                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: Math.min(i * 0.015, 0.4) }}
-                onClick={() => setSelectedCode(code)}
-                className={clsx('w-full text-left glass rounded-xl p-4 transition-all group',
-                  selectedCode?.id === code.id ? 'glow-border' : 'glass-hover')}>
-                <div className="flex items-start gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-rose-500/10 flex items-center justify-center flex-shrink-0 text-base">
-                    {CATEGORY_ICONS[code.category] ?? '🔧'}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <p className="text-sm font-semibold text-white truncate">{code.name}</p>
-                      {code.masterCodeRequired && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 flex-shrink-0">Master Code</span>
-                      )}
-                    </div>
-                    <p className="text-xs text-surface-400 truncate">{code.description}</p>
-                    <div className="flex items-center gap-2 mt-1.5">
-                      <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">{code.gameName}</span>
-                      <span className="text-[10px] text-surface-500">{code.codeType}</span>
-                    </div>
-                  </div>
-                  <button onClick={(e) => { e.stopPropagation(); handleCopy(code); }}
-                    className="p-2 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-white/[0.06] transition-all" title="Copy codes">
-                    {copiedId === code.id ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4 text-surface-400" />}
-                  </button>
-                </div>
-              </motion.button>
-            ))
-          )}
-        </div>
-
-        <div className="xl:col-span-2">
-          {selectedCode ? (
-            <motion.div key={selectedCode.id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
-              className="glass rounded-2xl overflow-hidden sticky top-6">
-              <div className="h-24 bg-gradient-to-br from-rose-600/20 to-orange-600/20 flex items-center justify-center">
-                <span className="text-5xl">{CATEGORY_ICONS[selectedCode.category] ?? '🔧'}</span>
-              </div>
-              <div className="p-5 space-y-4">
-                <div>
-                  <h3 className="text-lg font-bold text-white">{selectedCode.name}</h3>
-                  <p className="text-sm text-surface-400 mt-1">{selectedCode.description}</p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <p className="text-[10px] text-surface-500 mb-0.5">Game</p>
-                    <p className="text-sm font-medium text-white">{selectedCode.gameName}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-surface-500 mb-0.5">Type</p>
-                    <p className="text-sm font-medium text-white">{selectedCode.codeType}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-surface-500 mb-0.5">Generation</p>
-                    <p className="text-sm font-medium text-white">{GEN_LABELS[selectedCode.generation] ?? `Gen ${selectedCode.generation}`}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-surface-500 mb-0.5">Category</p>
-                    <p className="text-sm font-medium text-white">{selectedCode.category}</p>
-                  </div>
-                </div>
-
-                {selectedCode.masterCodeRequired && (
-                  <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/[0.06] border border-amber-500/10">
-                    <Shield className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
-                    <p className="text-xs text-amber-300">Requires Master Code to be activated first</p>
-                  </div>
-                )}
-
-                {selectedCode.activationNote && (
-                  <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-500/[0.06] border border-blue-500/10">
-                    <BookOpen className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
-                    <p className="text-xs text-blue-300">{selectedCode.activationNote}</p>
-                  </div>
-                )}
-
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs text-surface-400 font-medium">Code</p>
-                    <button onClick={() => handleCopy(selectedCode)}
-                      className="flex items-center gap-1 text-xs text-surface-400 hover:text-white transition-colors">
-                      {copiedId === selectedCode.id ? <><Check className="w-3 h-3 text-green-400" /> Copied!</> : <><Copy className="w-3 h-3" /> Copy</>}
+      <div className="rounded-xl border border-white/[0.06] overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setBrowseOpen(o => !o)}
+          className="w-full flex items-center justify-between px-4 py-3 text-left text-sm font-medium text-white bg-white/[0.03] hover:bg-white/[0.05]"
+        >
+          <span className="flex items-center gap-2">
+            <Search className="w-4 h-4 text-surface-400" />
+            Search all codes for {GAME_NAMES[gameVersion] ?? 'this game'}
+          </span>
+          <ChevronDown className={clsx('w-4 h-4 transition-transform', browseOpen && 'rotate-180')} />
+        </button>
+        {browseOpen && (
+          <div className="p-4 space-y-3 border-t border-white/[0.06]">
+            <input
+              type="search"
+              placeholder="e.g. rare candy, shiny, walk…"
+              value={browseQuery}
+              onChange={e => setBrowseQuery(e.target.value)}
+              className="input-field w-full"
+            />
+            <ul className="max-h-64 overflow-y-auto space-y-1 text-sm">
+              {browseResults.length === 0 ? (
+                <li className="text-surface-500 py-4 text-center">No matches</li>
+              ) : (
+                browseResults.map(c => (
+                  <li key={c.id}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setGameVersion(c.game);
+                        setCategoryKey(c.category);
+                        const list = getCheatsForGameAndCategory(db, c.game, c.category);
+                        const ix = list.findIndex(x => x.id === c.id);
+                        setCheatVariantIndex(ix >= 0 ? ix : 0);
+                        setBrowseOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-lg hover:bg-white/[0.04] text-surface-300 hover:text-white"
+                    >
+                      <span className="text-white">{c.name}</span>
+                      <span className="text-surface-500 text-xs block">{c.category}</span>
                     </button>
-                  </div>
-                  <div className="bg-surface-950/80 rounded-xl p-4 font-mono text-sm leading-relaxed text-emerald-300 border border-white/[0.04] select-all">
-                    {selectedCode.codes.map((line, i) => (
-                      <div key={i}>{line}</div>
-                    ))}
-                  </div>
-                </div>
-
-                {selectedCode.warning && (
-                  <div className="flex items-start gap-2 p-3 rounded-lg bg-red-500/[0.06] border border-red-500/10">
-                    <AlertTriangle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
-                    <p className="text-xs text-red-300">{selectedCode.warning}</p>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          ) : (
-            <div className="glass rounded-2xl p-12 text-center sticky top-6">
-              <Gamepad2 className="w-12 h-12 text-surface-600 mx-auto mb-4" />
-              <p className="text-surface-400 text-sm">Select a code to view details</p>
-              <p className="text-surface-500 text-xs mt-2">Click the copy button to copy codes to your clipboard for use in emulators</p>
-            </div>
-          )}
-        </div>
+                  </li>
+                ))
+              )}
+            </ul>
+          </div>
+        )}
       </div>
 
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
-        className="flex items-start gap-3 p-4 rounded-xl bg-amber-500/[0.06] border border-amber-500/10">
-        <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-        <div>
-          <p className="text-sm text-amber-300 font-medium">Use Cheats Responsibly</p>
-          <p className="text-xs text-surface-400 mt-1">
-            Always save before using cheat codes. Activate only one code at a time to prevent crashes.
-            Some codes may cause glitches like bad eggs or corrupted saves. Disable codes after use.
-            For Gen 6+ games, use PKHeX's built-in save editing features instead of external cheat devices.
-          </p>
-          <p className="text-[10px] text-surface-500 mt-2">Sources: PokemonCoders, AxeeTech, Gaming Gorilla, Pro Game Guides</p>
-        </div>
-      </motion.div>
+      <p className="text-xs text-surface-500 flex items-start gap-2">
+        <AlertTriangle className="w-4 h-4 text-surface-600 flex-shrink-0 mt-0.5" />
+        <span>
+          Back up your save. NDS codes are for matching US/English ROMs where noted; turn cheats off when you are done.
+        </span>
+      </p>
     </div>
   );
 }

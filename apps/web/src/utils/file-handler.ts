@@ -33,8 +33,12 @@ export function formatFileSize(bytes: number): string {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 }
 
-export const ACCEPTED_EXTENSIONS = [
-  '.sav', '.dsv', '.bin', '.dat', '.gci', '.sa1', '.sa2',
-  '.main', '.bak', '.pk4', '.pk5', '.pk6', '.pk7', '.pk8', '.pk9',
-  '.wc6', '.wc7', '.wc8', '.wc9', '.wa8',
-].join(',');
+/** Shown in UI — not used to block the file picker (saves are detected by size/content). */
+export const KNOWN_SAVE_EXTENSIONS_LABEL =
+  '.sav, .srm, .dsv, .duc, .dat, .bin, .raw, .gci, .eep, .fla, .main, .bak, .pk4-.pk9, .wc6-.wc9';
+
+/**
+ * Use a permissive picker like desktop PKHeX: many emulators use .srm, no extension, or custom names.
+ * Detection still happens in @pkhex/core via parseSaveFile.
+ */
+export const SAVE_FILE_INPUT_ACCEPT = '*/*';

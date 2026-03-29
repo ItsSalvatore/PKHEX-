@@ -20,5 +20,6 @@ export * from './data/moves.js';
 export * from './data/natures.js';
 
 export * from './data/cheat-codes.js';
+export * from './data/cheat-wild-templates.js';
 
 export * from './util/crypto.js';

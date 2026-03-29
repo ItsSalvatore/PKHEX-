@@ -1,4 +1,5 @@
 import { GameGeneration, GameVersion } from '../structures/save-file.js';
+import { POKEMONCODERS_GEN45, type NdsPokemonCodersGame } from './nds-pokemoncoders-cheats.js';
 
 export enum CheatCodeType {
   ActionReplay = 'Action Replay',
@@ -69,6 +70,42 @@ export function createCheatCodeDatabase(): CheatCodeDatabase {
   const CB = CheatCodeType.CodeBreaker;
   const Cat = CheatCategory;
 
+  function arHex(raw: string): string[] {
+    const compact = raw.replace(/[^0-9A-Fa-f]/g, '').toUpperCase();
+    const lines: string[] = [];
+    for (let i = 0; i + 16 <= compact.length; i += 16) {
+      const chunk = compact.slice(i, i + 16);
+      lines.push(`${chunk.slice(0, 8)} ${chunk.slice(8, 16)}`);
+    }
+    return lines;
+  }
+
+  const ndsCat = (s: string): CheatCategory =>
+    (Object.values(Cat) as string[]).includes(s) ? (s as CheatCategory) : Cat.Misc;
+
+  function ndsVer(g: NdsPokemonCodersGame): { version: GameVersion; name: string; gen: GameGeneration } {
+    if (g === 'Platinum') return { version: GameVersion.Platinum, name: 'Platinum', gen: GameGeneration.Gen4 };
+    if (g === 'Black') return { version: GameVersion.Black, name: 'Black', gen: GameGeneration.Gen5 };
+    return { version: GameVersion.White, name: 'White', gen: GameGeneration.Gen5 };
+  }
+
+  const pokemonCodersNds: CheatCode[] = POKEMONCODERS_GEN45.map((row) => {
+    const { version, name, gen } = ndsVer(row.game);
+    return c(
+      version,
+      name,
+      gen,
+      ndsCat(row.category),
+      row.name,
+      row.description ?? row.name,
+      AR,
+      arHex(row.hex),
+      false,
+      row.activationNote,
+      row.warning,
+    );
+  });
+
   const codes: CheatCode[] = [
     // ========== GEN 3: EMERALD ==========
     c(GameVersion.Emerald, 'Emerald', GameGeneration.Gen3, Cat.MasterCode, 'Master Code (Required)', 'Must be entered before any other GameShark code', GS, ['D8BAE4D9 4864DCE5', 'A86CDBA5 19BA49B3'], false),
@@ -126,18 +163,8 @@ export function createCheatCodeDatabase(): CheatCodeDatabase {
     c(GameVersion.Pearl, 'Pearl', GameGeneration.Gen4, Cat.InfiniteMoney, 'Max Money', 'Press L+R', AR, ['94000130 FCFF0000', 'B21C4D28 00000000', 'B0000004 00000000', '000000F8 000F423F', 'D2000000 00000000'], false, 'Press L+R'),
     c(GameVersion.Pearl, 'Pearl', GameGeneration.Gen4, Cat.CatchRate, '100% Catch Rate', 'Catch any wild Pokémon', AR, ['9224A948 00002801', '1224A948 00004280', 'D2000000 00000000'], false),
 
-    // ========== GEN 4: PLATINUM ==========
-    c(GameVersion.Platinum, 'Platinum', GameGeneration.Gen4, Cat.WalkThroughWalls, 'Walk Through Walls', 'Walk through any walls and barriers', AR, ['94000130 FCFF0000', '62101D40 00000000', 'B2101D40 00000000', '0000008C 00000001', 'D2000000 00000000'], false, 'Press R+B to activate, L+B to deactivate'),
-    c(GameVersion.Platinum, 'Platinum', GameGeneration.Gen4, Cat.RareCandy, '900x Medicine Items', 'Press L+R for 900x Rare Candy and all medicine', AR, ['94000130 FCFF0000', '62101D40 00000000', 'B2101D40 00000000', 'D5000000 03840011', 'C0000000 00000025', 'D6000000 00000B74', 'D4000000 00000001', 'D2000000 00000000'], false, 'Press L+R'),
-    c(GameVersion.Platinum, 'Platinum', GameGeneration.Gen4, Cat.MasterBall, '999x Master Ball', 'Get 999 Master Balls', AR, ['94000130 FCFF0000', '62101D40 00000000', 'B2101D40 00000000', '00000F4C 03E70001', 'D2000000 00000000'], false, 'Press L+R'),
-    c(GameVersion.Platinum, 'Platinum', GameGeneration.Gen4, Cat.InfiniteMoney, 'Max Money (₽999999)', 'Max out your wallet', AR, ['94000130 FCFF0000', '62101D40 00000000', 'B2101D40 00000000', '00000090 000F423F', 'D2000000 00000000'], false, 'Press L+R'),
-    c(GameVersion.Platinum, 'Platinum', GameGeneration.Gen4, Cat.CatchRate, '100% Catch Rate', 'Every Poké Ball is guaranteed to catch', AR, ['9224A948 00002801', '1224A948 00004280', 'D2000000 00000000'], false),
-    c(GameVersion.Platinum, 'Platinum', GameGeneration.Gen4, Cat.ShinyPokemon, 'Shiny Pokémon Encounters', 'All wild encounters are shiny', AR, ['12068AC6 000046C0'], false, undefined, 'Disable immediately after catching'),
-    c(GameVersion.Platinum, 'Platinum', GameGeneration.Gen4, Cat.AllBadges, 'All 8 Badges', 'Get all gym badges', AR, ['94000130 FCFF0000', '62101D40 00000000', 'B2101D40 00000000', '2000008E 000000FF', 'D2000000 00000000'], false, 'Press L+R'),
-    c(GameVersion.Platinum, 'Platinum', GameGeneration.Gen4, Cat.EggHatch, 'Instant Egg Hatch', 'Eggs hatch in 1 step', AR, ['92071D5A 00002001', '12071D5A 00002000', 'D2000000 00000000'], false),
-    c(GameVersion.Platinum, 'Platinum', GameGeneration.Gen4, Cat.AllTMs, 'All TMs & HMs (999x)', 'Get all TMs and HMs in bag', AR, ['94000130 FCFF0000', '62101D40 00000000', 'B2101D40 00000000', 'D5000000 03E30148', 'C0000000 00000063', 'D6000000 00000D64', 'D4000000 00000001', 'D2000000 00000000'], false, 'Press L+R'),
-    c(GameVersion.Platinum, 'Platinum', GameGeneration.Gen4, Cat.CatchTrainer, "Catch Trainer's Pokémon", 'Throw balls at trainers\' Pokémon', AR, ['9223B5FA 00002101', '1223B5FA 00002100', 'D2000000 00000000'], false),
-    c(GameVersion.Platinum, 'Platinum', GameGeneration.Gen4, Cat.NoBattles, 'No Random Encounters', 'Disable wild battles entirely', AR, ['12060C20 00000200'], false),
+    // ========== GEN 4: PLATINUM + GEN 5: BLACK / WHITE (PokemonCoders) ==========
+    ...pokemonCodersNds,
 
     // ========== GEN 4: HEARTGOLD ==========
     c(GameVersion.HeartGold, 'HeartGold', GameGeneration.Gen4, Cat.WalkThroughWalls, 'Walk Through Walls', 'Walk through any walls (hold R)', AR, ['12060C12 00000200'], false, 'Hold R'),
@@ -145,21 +172,6 @@ export function createCheatCodeDatabase(): CheatCodeDatabase {
     c(GameVersion.HeartGold, 'HeartGold', GameGeneration.Gen4, Cat.InfiniteMoney, 'Max Money', 'Max out money to ₽999999', AR, ['94000130 FCFF0000', '62111880 00000000', 'B2111880 00000000', '00000088 000F423F', 'D2000000 00000000'], false, 'Press L+R'),
     c(GameVersion.HeartGold, 'HeartGold', GameGeneration.Gen4, Cat.CatchRate, '100% Catch Rate', 'Guaranteed catch with any ball', AR, ['9224A948 00002801', '1224A948 00004280', 'D2000000 00000000'], false),
     c(GameVersion.HeartGold, 'HeartGold', GameGeneration.Gen4, Cat.ShinyPokemon, 'Shiny Wild Pokémon', 'All wild encounters are shiny', AR, ['12068AC6 000046C0'], false),
-
-    // ========== GEN 5: BLACK ==========
-    c(GameVersion.Black, 'Black', GameGeneration.Gen5, Cat.WalkThroughWalls, 'Walk Through Walls', 'Walk through walls and obstacles', AR, ['521A04D4 D1032800', '121A04D4 00002000', 'D2000000 00000000'], false),
-    c(GameVersion.Black, 'Black', GameGeneration.Gen5, Cat.RareCandy, '900x Rare Candy', 'Press SELECT to fill bag with Rare Candy', AR, ['94000130 FFFB0000', '0223CDAC 03840032', 'D2000000 00000000'], false, 'Press SELECT'),
-    c(GameVersion.Black, 'Black', GameGeneration.Gen5, Cat.MasterBall, '900x Master Ball', 'Press SELECT for Master Balls', AR, ['94000130 FFFB0000', '0223CDAC 03840001', 'D2000000 00000000'], false, 'Press SELECT'),
-    c(GameVersion.Black, 'Black', GameGeneration.Gen5, Cat.InfiniteMoney, 'Max Money (₽9999999)', 'Press SELECT for max money', AR, ['94000130 FFFB0000', '0223CDCC 0098967F', 'D2000000 00000000'], false, 'Press SELECT'),
-    c(GameVersion.Black, 'Black', GameGeneration.Gen5, Cat.CatchRate, '100% Catch Rate', 'Catch any Pokémon guaranteed', AR, ['521CBDB4 7820D203', '121CBDB4 00004280', 'D2000000 00000000'], false),
-    c(GameVersion.Black, 'Black', GameGeneration.Gen5, Cat.ShinyPokemon, 'Shiny Wild Pokémon', 'All wild encounters are shiny', AR, ['521A96D8 1C221C33', '021A96D8 2C001C22', 'D2000000 00000000'], false),
-    c(GameVersion.Black, 'Black', GameGeneration.Gen5, Cat.ExpMultiplier, 'Fast EXP Gain', 'Earn boosted experience from battles', AR, ['5219811C 4C08210F', '0219811C 210F4C08', 'D2000000 00000000'], false),
-
-    // ========== GEN 5: WHITE ==========
-    c(GameVersion.White, 'White', GameGeneration.Gen5, Cat.InfiniteMoney, 'Max Money (₽9999999)', 'Press SELECT for max money', AR, ['94000130 FFFB0000', '0223CDCC 0098967F', 'D2000000 00000000'], false, 'Press SELECT'),
-    c(GameVersion.White, 'White', GameGeneration.Gen5, Cat.RareCandy, '900x Rare Candy', 'Press SELECT', AR, ['94000130 FFFB0000', '0223CDAC 03840032', 'D2000000 00000000'], false, 'Press SELECT'),
-    c(GameVersion.White, 'White', GameGeneration.Gen5, Cat.MasterBall, '900x Master Ball', 'Press SELECT', AR, ['94000130 FFFB0000', '0223CDAC 03840001', 'D2000000 00000000'], false, 'Press SELECT'),
-    c(GameVersion.White, 'White', GameGeneration.Gen5, Cat.WalkThroughWalls, 'Walk Through Walls', 'Pass through any solid object', AR, ['521A04D4 D1032800', '121A04D4 00002000', 'D2000000 00000000'], false),
 
     // ========== GEN 5: BLACK 2 ==========
     c(GameVersion.Black2, 'Black 2', GameGeneration.Gen5, Cat.InfiniteMoney, 'Max Money', 'Press SELECT for max money', AR, ['94000130 FFFB0000', '0223CC2C 0098967F', 'D2000000 00000000'], false, 'Press SELECT'),
@@ -187,7 +199,12 @@ export function createCheatCodeDatabase(): CheatCodeDatabase {
     c(GameVersion.Scarlet, 'Scarlet', GameGeneration.Gen9, Cat.ShinyPokemon, 'Shiny Charm', 'Add Shiny Charm to key items', AR, ['Add item ID via save editor'], false, 'Use PKHeX save editor'),
   ];
 
-  return { codes, lastUpdated: new Date().toISOString(), totalCount: codes.length, source: 'PokemonCoders, AxeeTech, Gaming Gorilla, Pro Game Guides' };
+  return {
+    codes,
+    lastUpdated: new Date().toISOString(),
+    totalCount: codes.length,
+    source: 'PokemonCoders (Platinum, Black, White), AxeeTech, community lists',
+  };
 }
 
 export function searchCheatCodes(db: CheatCodeDatabase, query: string): CheatCode[] {
@@ -222,4 +239,20 @@ export function getAvailableGames(db: CheatCodeDatabase): Array<{ version: GameV
 
 export function getAvailableCategories(db: CheatCodeDatabase): CheatCategory[] {
   return [...new Set(db.codes.map(c => c.category))];
+}
+
+export function getCategoriesForGame(db: CheatCodeDatabase, game: GameVersion): CheatCategory[] {
+  const set = new Set<CheatCategory>();
+  for (const c of db.codes) {
+    if (c.game === game) set.add(c.category);
+  }
+  return [...set].sort((a, b) => a.localeCompare(b));
+}
+
+export function getCheatsForGameAndCategory(
+  db: CheatCodeDatabase,
+  game: GameVersion,
+  category: CheatCategory,
+): CheatCode[] {
+  return db.codes.filter(c => c.game === game && c.category === category);
 }
