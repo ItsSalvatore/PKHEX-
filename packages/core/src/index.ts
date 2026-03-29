@@ -5,6 +5,7 @@ export * from './structures/save-file.js';
 
 export * from './saves/detector.js';
 export * from './saves/parser.js';
+export * from './saves/pkhex-bridge.js';
 export * from './saves/writer.js';
 export * from './saves/pkm-codec.js';
 

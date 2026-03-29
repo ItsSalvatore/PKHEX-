@@ -39,6 +39,6 @@ export const KNOWN_SAVE_EXTENSIONS_LABEL =
 
 /**
  * Use a permissive picker like desktop PKHeX: many emulators use .srm, no extension, or custom names.
- * Detection still happens in @pkhex/core via parseSaveFile.
+ * Parsing uses @pkhex/core (TypeScript) by default, or PKHeX.Core via optional `VITE_PKHEX_BRIDGE_URL`.
  */
 export const SAVE_FILE_INPUT_ACCEPT = '*/*';

@@ -4,6 +4,16 @@ import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
 
 export default defineConfig({
+  server: {
+    proxy: {
+      // Run: npm run pkhex-bridge — then set VITE_PKHEX_BRIDGE_URL=/api/pkhex-parse
+      '/api/pkhex-parse': {
+        target: 'http://127.0.0.1:5177',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/api\/pkhex-parse/, '/parse'),
+      },
+    },
+  },
   plugins: [
     react(),
     VitePWA({

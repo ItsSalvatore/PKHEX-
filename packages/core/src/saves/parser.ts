@@ -66,7 +66,7 @@ function parseGen1(data: Uint8Array, fileName: string): SaveFile {
     fileName, fileSize: data.length, generation: GameGeneration.Gen1,
     gameVersion: GameVersion.Red, trainer, party, boxes,
     boxCount: 12, slotsPerBox: 20,
-    inventory: createDefaultInventory(GameGeneration.Gen1),
+    inventory: createDefaultInventoryForGeneration(GameGeneration.Gen1),
     rawData: data, isDirty: false,
   };
 }
@@ -145,7 +145,7 @@ function parseGen2(data: Uint8Array, fileName: string): SaveFile {
     fileName, fileSize: data.length, generation: GameGeneration.Gen2,
     gameVersion: GameVersion.Gold, trainer, party: Array(6).fill(null), boxes,
     boxCount: 14, slotsPerBox: 20,
-    inventory: createDefaultInventory(GameGeneration.Gen2), rawData: data, isDirty: false,
+    inventory: createDefaultInventoryForGeneration(GameGeneration.Gen2), rawData: data, isDirty: false,
   };
 }
 
@@ -172,7 +172,7 @@ function parseGen3(data: Uint8Array, fileName: string, version: GameVersion): Sa
     fileName, fileSize: data.length, generation: GameGeneration.Gen3,
     gameVersion: version, trainer, party, boxes,
     boxCount: 14, slotsPerBox: 30,
-    inventory: createDefaultInventory(GameGeneration.Gen3), rawData: data, isDirty: false,
+    inventory: createDefaultInventoryForGeneration(GameGeneration.Gen3), rawData: data, isDirty: false,
   };
 }
 
@@ -322,7 +322,7 @@ function parseGen4(data: Uint8Array, fileName: string, version: GameVersion, sub
     fileName, fileSize: data.length, generation: GameGeneration.Gen4,
     gameVersion: version, trainer, party, boxes,
     boxCount: 18, slotsPerBox: 30,
-    inventory: createDefaultInventory(GameGeneration.Gen4), rawData: data, isDirty: false,
+    inventory: createDefaultInventoryForGeneration(GameGeneration.Gen4), rawData: data, isDirty: false,
   };
 }
 
@@ -381,7 +381,7 @@ function parseGen5(data: Uint8Array, fileName: string, version: GameVersion, sub
     fileName, fileSize: data.length, generation: GameGeneration.Gen5,
     gameVersion: version, trainer, party, boxes,
     boxCount: 24, slotsPerBox: 30,
-    inventory: createDefaultInventory(GameGeneration.Gen5), rawData: data, isDirty: false,
+    inventory: createDefaultInventoryForGeneration(GameGeneration.Gen5), rawData: data, isDirty: false,
   };
 }
 
@@ -434,7 +434,7 @@ function parseGen6(data: Uint8Array, fileName: string, version: GameVersion, sub
     fileName, fileSize: data.length, generation: GameGeneration.Gen6,
     gameVersion: version, trainer, party, boxes,
     boxCount: 31, slotsPerBox: 30,
-    inventory: createDefaultInventory(GameGeneration.Gen6), rawData: data, isDirty: false,
+    inventory: createDefaultInventoryForGeneration(GameGeneration.Gen6), rawData: data, isDirty: false,
   };
 }
 
@@ -487,7 +487,7 @@ function parseGen7(data: Uint8Array, fileName: string, version: GameVersion, sub
     fileName, fileSize: data.length, generation: GameGeneration.Gen7,
     gameVersion: version, trainer, party, boxes,
     boxCount: 32, slotsPerBox: 30,
-    inventory: createDefaultInventory(GameGeneration.Gen7), rawData: data, isDirty: false,
+    inventory: createDefaultInventoryForGeneration(GameGeneration.Gen7), rawData: data, isDirty: false,
   };
 }
 
@@ -531,7 +531,7 @@ function parseGen8(data: Uint8Array, fileName: string, version: GameVersion): Sa
     fileName, fileSize: data.length, generation: GameGeneration.Gen8,
     gameVersion: version, trainer, party, boxes,
     boxCount: 32, slotsPerBox: 30,
-    inventory: createDefaultInventory(GameGeneration.Gen8), rawData: data, isDirty: false,
+    inventory: createDefaultInventoryForGeneration(GameGeneration.Gen8), rawData: data, isDirty: false,
   };
 }
 
@@ -594,7 +594,7 @@ function parseGen9(data: Uint8Array, fileName: string, version: GameVersion): Sa
     fileName, fileSize: data.length, generation: GameGeneration.Gen9,
     gameVersion: version, trainer, party, boxes,
     boxCount: 32, slotsPerBox: 30,
-    inventory: createDefaultInventory(GameGeneration.Gen9), rawData: data, isDirty: false,
+    inventory: createDefaultInventoryForGeneration(GameGeneration.Gen9), rawData: data, isDirty: false,
   };
 }
 
@@ -690,11 +690,12 @@ function createFallbackSave(data: Uint8Array, fileName: string, generation: Game
   return {
     fileName, fileSize: data.length, generation, gameVersion: version,
     trainer, party: Array(6).fill(null), boxes, boxCount, slotsPerBox,
-    inventory: createDefaultInventory(generation), rawData: data, isDirty: false,
+    inventory: createDefaultInventoryForGeneration(generation), rawData: data, isDirty: false,
   };
 }
 
-function createDefaultInventory(gen: GameGeneration) {
+/** Used when building saves from the optional PKHeX.Core bridge payload. */
+export function createDefaultInventoryForGeneration(gen: GameGeneration) {
   const maxCount = gen >= 5 ? 999 : 99;
   return [
     createInventoryPouch(InventoryType.Items, 'Items', maxCount, 999),

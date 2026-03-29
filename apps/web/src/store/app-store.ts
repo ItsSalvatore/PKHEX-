@@ -3,9 +3,8 @@ import type {
   SaveFile, Pokemon, BoxData, TrainerInfo, InventoryPouch,
 } from '@pkhex/core';
 import {
-  GameGeneration, GameVersion, GAME_NAMES,
   setBoxPokemon, swapBoxPokemon,
-  parseSaveFile,
+  loadSaveFileWithOptionalPkhexBridge,
   exportModifiedSave,
   createBuiltinMysteryGiftDatabase,
   type MysteryGiftDatabase,
@@ -24,7 +23,7 @@ export interface AppState {
   recentFiles: Array<{ name: string; date: string; size: number }>;
   theme: 'dark' | 'light';
 
-  loadSaveFile: (data: Uint8Array, fileName: string) => boolean;
+  loadSaveFile: (data: Uint8Array, fileName: string) => Promise<boolean>;
   closeSaveFile: () => void;
   exportSave: () => Uint8Array | null;
   selectBox: (index: number) => void;
@@ -51,10 +50,14 @@ export const useAppStore = create<AppState>((set, get) => ({
   recentFiles: [],
   theme: 'dark',
 
-  loadSaveFile: (data, fileName) => {
+  loadSaveFile: async (data, fileName) => {
     set({ isLoading: true, error: null });
     try {
-      const save = parseSaveFile(data, fileName);
+      const bridgeUrl =
+        typeof import.meta !== 'undefined' && import.meta.env?.VITE_PKHEX_BRIDGE_URL
+          ? String(import.meta.env.VITE_PKHEX_BRIDGE_URL).trim() || undefined
+          : undefined;
+      const save = await loadSaveFileWithOptionalPkhexBridge(data, fileName, { bridgeUrl });
       const recent = get().recentFiles;
       const entry = { name: fileName, date: new Date().toISOString(), size: data.length };
       set({

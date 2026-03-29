@@ -14,7 +14,7 @@ export function LoadSave() {
 
   const handleFile = useCallback(async (file: File) => {
     const data = await readFileAsArrayBuffer(file);
-    if (loadSaveFile(data, file.name)) navigate('/');
+    if (await loadSaveFile(data, file.name)) navigate('/');
   }, [loadSaveFile, navigate]);
 
   const handleDrop = useCallback(async (files: FileList) => {
@@ -121,7 +121,7 @@ export function LoadSave() {
         <div>
           <p className="text-sm text-amber-300 font-medium">Privacy First</p>
           <p className="text-xs text-surface-400 mt-1">
-            Your save files are never uploaded to any server. All editing happens 100% locally in your browser using WebAssembly.
+            Your save files are not uploaded to our servers. By default parsing runs in your browser; you can optionally run the local PKHeX.Core bridge (same stack as PKHeX.Everywhere) for PKHeX-identical load behavior.
           </p>
         </div>
       </motion.div>

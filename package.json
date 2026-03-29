@@ -17,7 +17,8 @@
     "preview": "npm run preview --workspace=apps/web",
     "start": "NODE_ENV=production node server.mjs",
     "lint": "npm run lint --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present"
+    "test": "npm run test --workspaces --if-present",
+    "pkhex-bridge": "dotnet run --project tools/pkhex-save-bridge --urls http://127.0.0.1:5177"
   },
   "dependencies": {
     "express": "^4.21.0",
