@@ -1,18 +1,14 @@
+import { clsx } from 'clsx';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/store/app-store';
 import { GAME_NAMES } from '@pkhex/core';
 import { formatPlayTime } from '@pkhex/core';
 import { motion } from 'framer-motion';
 import {
-  Upload, Users, Box, Backpack, Gift, Shield,
-  Sparkles, Clock, Trophy, Zap,
+  Upload, Users, Box, Backpack, Gift, Shield, Sparkles, Clock, Trophy,
 } from 'lucide-react';
 
-const fadeUp = {
-  initial: { opacity: 0, y: 20 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.4 },
-};
+const fade = { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 } };
 
 export function Dashboard() {
   const { saveFile, recentFiles } = useAppStore();
@@ -20,37 +16,37 @@ export function Dashboard() {
 
   if (!saveFile) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[80vh]">
-        <motion.div {...fadeUp} className="text-center max-w-lg">
-          <div className="w-24 h-24 mx-auto mb-8 rounded-3xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-2xl shadow-indigo-500/30 animate-float">
-            <Zap className="w-12 h-12 text-white" />
-          </div>
-          <h1 className="text-4xl font-bold text-gradient mb-3">PKHeX</h1>
-          <p className="text-surface-300 text-lg mb-8">
-            Cross-platform Pokémon save file editor. Load a save to get started.
+      <div className="mx-auto flex max-w-lg flex-col items-center py-12">
+        <motion.div {...fade} className="text-center">
+          <h1 className="text-2xl font-semibold text-slate-900 dark:text-white sm:text-3xl">Welcome</h1>
+          <p className="mt-2 text-sm text-slate-600 dark:text-surface-400">
+            Load a save file to edit your party, boxes, trainer, and inventory. Everything runs locally in your browser.
           </p>
-          <button onClick={() => navigate('/load')} className="btn-primary text-base px-8 py-3">
-            <Upload className="w-5 h-5 inline mr-2" />
-            Load Save File
+          <button
+            type="button"
+            onClick={() => navigate('/load')}
+            className="btn-primary mt-8 inline-flex items-center gap-2"
+          >
+            <Upload className="h-4 w-4" aria-hidden />
+            Load save file
           </button>
         </motion.div>
 
         {recentFiles.length > 0 && (
-          <motion.div {...fadeUp} transition={{ delay: 0.2 }} className="mt-12 w-full max-w-lg">
-            <h3 className="text-sm font-medium text-surface-400 mb-3 flex items-center gap-2">
-              <Clock className="w-4 h-4" /> Recent Files
-            </h3>
-            <div className="space-y-2">
+          <motion.div {...fade} transition={{ delay: 0.1 }} className="mt-12 w-full">
+            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-surface-500">
+              Recent files
+            </h2>
+            <ul className="space-y-2">
               {recentFiles.map((f, i) => (
-                <div key={i} className="glass glass-hover rounded-xl p-3 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-white">{f.name}</p>
-                    <p className="text-xs text-surface-400">{new Date(f.date).toLocaleDateString()}</p>
-                  </div>
-                  <span className="text-xs text-surface-500">{(f.size / 1024).toFixed(0)} KB</span>
-                </div>
+                <li key={i} className="glass rounded-lg px-4 py-3">
+                  <p className="text-sm font-medium text-slate-900 dark:text-white">{f.name}</p>
+                  <p className="text-xs text-slate-500 dark:text-surface-500">
+                    {new Date(f.date).toLocaleDateString()} · {(f.size / 1024).toFixed(0)} KB
+                  </p>
+                </li>
               ))}
-            </div>
+            </ul>
           </motion.div>
         )}
       </div>
@@ -61,80 +57,87 @@ export function Dashboard() {
   const gameName = GAME_NAMES[saveFile.gameVersion] ?? 'Unknown';
   const partyCount = saveFile.party.filter(p => p !== null).length;
   const boxPokemonCount = saveFile.boxes.reduce(
-    (sum, b) => sum + b.pokemon.filter(p => p !== null).length, 0
+    (sum, b) => sum + b.pokemon.filter(p => p !== null).length, 0,
   );
 
-  const quickActions = [
-    { label: 'Party', icon: Users, path: '/party', color: 'from-blue-500 to-cyan-500', count: `${partyCount}/6` },
-    { label: 'PC Boxes', icon: Box, path: '/boxes', color: 'from-purple-500 to-pink-500', count: `${boxPokemonCount} Pokémon` },
-    { label: 'Inventory', icon: Backpack, path: '/inventory', color: 'from-amber-500 to-orange-500', count: 'Manage' },
-    { label: 'Mystery Gifts', icon: Gift, path: '/mystery-gifts', color: 'from-emerald-500 to-teal-500', count: 'Database' },
-    { label: 'Legality', icon: Shield, path: '/legality', color: 'from-red-500 to-rose-500', count: 'Check' },
-    { label: 'Trainer', icon: Sparkles, path: '/trainer', color: 'from-indigo-500 to-violet-500', count: 'Edit' },
+  const shortcuts = [
+    { label: 'Party', sub: `${partyCount}/6`, icon: Users, path: '/party' },
+    { label: 'PC Boxes', sub: `${boxPokemonCount} Pokémon`, icon: Box, path: '/boxes' },
+    { label: 'Inventory', sub: 'Items', icon: Backpack, path: '/inventory' },
+    { label: 'Mystery Gifts', sub: 'Database', icon: Gift, path: '/mystery-gifts' },
+    { label: 'Legality', sub: 'Checks', icon: Shield, path: '/legality' },
+    { label: 'Trainer', sub: 'Profile', icon: Sparkles, path: '/trainer' },
   ];
 
   return (
     <div className="space-y-8">
-      <motion.div {...fadeUp}>
-        <div className="glass rounded-2xl p-6 card-shine">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs text-surface-400 uppercase tracking-wider mb-1">Currently Loaded</p>
-              <h1 className="text-3xl font-bold text-white mb-1">
-                Pokémon {gameName}
-              </h1>
-              <p className="text-surface-300">
-                Trainer: <span className="text-white font-semibold">{trainer.name}</span>
-                <span className="mx-2 text-surface-600">|</span>
-                ID: <span className="text-indigo-400 font-mono">{trainer.displayTID}</span>
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-surface-400 mb-1">Gen {saveFile.generation}</p>
-              <div className="flex items-center gap-1">
-                <Clock className="w-3 h-3 text-surface-400" />
-                <span className="text-xs text-surface-300">{formatPlayTime(trainer.playTime)}</span>
-              </div>
-            </div>
+      <motion.section {...fade} className="glass rounded-xl p-5 sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-surface-500">
+              Loaded save
+            </p>
+            <h1 className="mt-1 text-2xl font-semibold text-slate-900 dark:text-white">
+              {gameName}
+            </h1>
+            <p className="mt-2 text-sm text-slate-600 dark:text-surface-400">
+              <span className="font-medium text-slate-900 dark:text-white">{trainer.name}</span>
+              <span className="mx-2 text-slate-300 dark:text-surface-600">·</span>
+              <span className="font-mono text-indigo-700 dark:text-indigo-300">ID {trainer.displayTID}</span>
+            </p>
           </div>
-          <div className="flex gap-2 mt-4">
-            {trainer.badges.map((has, i) => (
-              <div
-                key={i}
-                className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${
-                  has
-                    ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                    : 'bg-white/[0.03] text-surface-600 border border-white/[0.04]'
-                }`}
-              >
-                <Trophy className="w-4 h-4" />
-              </div>
-            ))}
+          <div className="text-left sm:text-right">
+            <p className="text-xs text-slate-500 dark:text-surface-500">Generation {saveFile.generation}</p>
+            <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-600 dark:text-surface-400">
+              <Clock className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
+              {formatPlayTime(trainer.playTime)}
+            </p>
           </div>
         </div>
-      </motion.div>
-
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-        {quickActions.map((action, i) => {
-          const Icon = action.icon;
-          return (
-            <motion.button
-              key={action.path}
-              onClick={() => navigate(action.path)}
-              className="glass glass-hover rounded-2xl p-5 text-left group"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 + i * 0.05 }}
+        <div className="mt-5 flex flex-wrap gap-1.5">
+          {trainer.badges.map((has, i) => (
+            <div
+              key={i}
+              className={clsx(
+                'flex h-8 w-8 items-center justify-center rounded-md border',
+                has
+                  ? 'border-amber-300/50 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300'
+                  : 'border-slate-200 bg-slate-50 text-slate-300 dark:border-white/[0.06] dark:bg-white/[0.03] dark:text-surface-600',
+              )}
+              title={`Badge ${i + 1}`}
             >
-              <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${action.color} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
-                <Icon className="w-5 h-5 text-white" />
-              </div>
-              <p className="text-sm font-semibold text-white">{action.label}</p>
-              <p className="text-xs text-surface-400 mt-0.5">{action.count}</p>
-            </motion.button>
-          );
-        })}
-      </div>
+              <Trophy className="h-3.5 w-3.5" aria-hidden />
+            </div>
+          ))}
+        </div>
+      </motion.section>
+
+      <section>
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-surface-500">
+          Shortcuts
+        </h2>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+          {shortcuts.map((s, i) => {
+            const Icon = s.icon;
+            return (
+              <motion.button
+                type="button"
+                key={s.path}
+                onClick={() => navigate(s.path)}
+                className="glass glass-hover flex flex-col items-start rounded-xl p-4 text-left transition-colors"
+                {...fade}
+                transition={{ delay: 0.03 * i }}
+              >
+                <span className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300">
+                  <Icon className="h-4 w-4" aria-hidden />
+                </span>
+                <span className="text-sm font-medium text-slate-900 dark:text-white">{s.label}</span>
+                <span className="text-xs text-slate-500 dark:text-surface-500">{s.sub}</span>
+              </motion.button>
+            );
+          })}
+        </div>
+      </section>
     </div>
   );
 }

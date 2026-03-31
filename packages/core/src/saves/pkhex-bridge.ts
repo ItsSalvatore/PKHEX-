@@ -17,10 +17,42 @@ const PKH = {
 } as const;
 
 export interface PkhexBridgeParseOptions {
-  /** Full URL (e.g. `http://127.0.0.1:5177/parse`) or Vite proxy path (`/api/pkhex-parse`). */
+  /**
+   * Bridge POST target. Omit to auto-resolve: `VITE_PKHEX_BRIDGE_URL` if set, else in Vite dev `/api/pkhex-parse`.
+   * Pass `null` or `''` to force in-browser parsing only (no PKHeX.Core).
+   */
   bridgeUrl?: string | null;
   /** Abort load if the bridge is set but unreachable (default: fall back to TS parser). */
   requireBridge?: boolean;
+  /**
+   * If the bridge responds with PKHeX `SaveUtil` rejection (`ok: false`), still try the TS parser.
+   * Default false: trust PKHeX.Core the same way PKHeX.Everywhere does and do not second-guess with TS heuristics.
+   */
+  allowParserFallbackOnPkhexReject?: boolean;
+}
+
+/**
+ * URL for `tools/pkhex-save-bridge` (PKHeX.Core `SaveUtil.GetSaveFile`), same entry point as PKHeX.Everywhere.
+ * - Explicit `VITE_PKHEX_BRIDGE_URL` wins (any environment).
+ * - In Vite dev, defaults to `/api/pkhex-parse` (see `apps/web/vite.config.ts` proxy).
+ */
+export function resolvePkhexBridgeUrl(): string | undefined {
+  if (typeof import.meta === 'undefined') return undefined;
+  const env = import.meta.env;
+  if (!env) return undefined;
+  const explicit = env.VITE_PKHEX_BRIDGE_URL != null ? String(env.VITE_PKHEX_BRIDGE_URL).trim() : '';
+  if (explicit) return explicit;
+  if (env.DEV === true) return '/api/pkhex-parse';
+  return undefined;
+}
+
+function effectiveBridgeUrl(options?: PkhexBridgeParseOptions): string | undefined {
+  if (options?.bridgeUrl === null) return undefined;
+  if (options?.bridgeUrl !== undefined) {
+    const t = String(options.bridgeUrl).trim();
+    return t || undefined;
+  }
+  return resolvePkhexBridgeUrl();
 }
 
 interface BridgeTrainerJson {
@@ -257,7 +289,7 @@ export async function loadSaveFileWithOptionalPkhexBridge(
   fileName: string,
   options?: PkhexBridgeParseOptions,
 ): Promise<SaveFile> {
-  const url = options?.bridgeUrl?.trim();
+  const url = effectiveBridgeUrl(options);
   if (!url) {
     return parseSaveFile(data, fileName);
   }
@@ -270,6 +302,23 @@ export async function loadSaveFileWithOptionalPkhexBridge(
     });
 
     if (!res.ok) {
+      let pkhexMessage: string | undefined;
+      try {
+        const errBody = await res.json() as { ok?: boolean; error?: string };
+        if (typeof errBody?.error === 'string' && errBody.error.length > 0) {
+          pkhexMessage = errBody.error;
+        }
+      } catch {
+        /* e.g. HTML 502 from proxy when bridge is down */
+      }
+
+      if (pkhexMessage != null) {
+        if (options?.allowParserFallbackOnPkhexReject) {
+          return parseSaveFile(data, fileName);
+        }
+        throw new Error(pkhexMessage);
+      }
+
       if (options?.requireBridge) {
         throw new Error(`PKHeX bridge returned ${res.status}`);
       }
@@ -288,6 +337,7 @@ export async function loadSaveFileWithOptionalPkhexBridge(
     if (options?.requireBridge) {
       throw e instanceof Error ? e : new Error(String(e));
     }
+    /* Bridge unreachable or non-JSON failure: optional TS fallback */
   }
 
   return parseSaveFile(data, fileName);

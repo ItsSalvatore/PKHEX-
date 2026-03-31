@@ -15,14 +15,25 @@
     "build:core": "npm run build --workspace=packages/core",
     "build:web": "npm run build --workspace=apps/web",
     "preview": "npm run preview --workspace=apps/web",
-    "start": "NODE_ENV=production node server.mjs",
+    "start": "cross-env NODE_ENV=production node server.mjs",
     "lint": "npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
-    "pkhex-bridge": "dotnet run --project tools/pkhex-save-bridge --urls http://127.0.0.1:5177"
+    "pkhex-bridge": "dotnet run --project tools/pkhex-save-bridge --urls http://127.0.0.1:5177",
+    "pkhex-bridge:publish": "dotnet publish tools/pkhex-save-bridge -c Release -o tools/pkhex-save-bridge/publish",
+    "pm2:start": "pm2 startOrReload ecosystem.config.cjs",
+    "pm2:stop": "pm2 stop pkhex-bridge pkhex-pwa",
+    "pm2:delete": "pm2 delete pkhex-bridge pkhex-pwa",
+    "pm2:restart": "pm2 restart pkhex-bridge pkhex-pwa",
+    "pm2:logs": "pm2 logs",
+    "pm2:status": "pm2 status",
+    "pm2:save": "pm2 save",
+    "prod:pm2": "npm run build && npm run pkhex-bridge:publish && pm2 startOrReload ecosystem.config.cjs"
   },
   "dependencies": {
+    "compression": "^1.7.5",
     "express": "^4.21.0",
-    "compression": "^1.7.5"
+    "http-proxy-middleware": "^3.0.5",
+    "pm2": "^6.0.14"
   },
   "engines": {
     "node": ">=18.0.0"
@@ -30,5 +41,8 @@
   "overrides": {
     "serialize-javascript": "7.0.5",
     "tar": "7.5.13"
+  },
+  "devDependencies": {
+    "cross-env": "^10.1.0"
   }
 }

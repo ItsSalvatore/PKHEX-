@@ -10,6 +10,17 @@ import {
   type MysteryGiftDatabase,
 } from '@pkhex/core';
 
+function readStoredTheme(): 'dark' | 'light' {
+  if (typeof localStorage === 'undefined') return 'dark';
+  return localStorage.getItem('pkhex-theme') === 'light' ? 'light' : 'dark';
+}
+
+function applyThemeClass(theme: 'dark' | 'light') {
+  if (typeof document === 'undefined') return;
+  document.documentElement.classList.toggle('dark', theme === 'dark');
+  document.documentElement.classList.toggle('light', theme === 'light');
+}
+
 export interface AppState {
   saveFile: SaveFile | null;
   selectedBoxIndex: number;
@@ -22,13 +33,14 @@ export interface AppState {
   error: string | null;
   recentFiles: Array<{ name: string; date: string; size: number }>;
   theme: 'dark' | 'light';
+  setTheme: (theme: 'dark' | 'light') => void;
 
   loadSaveFile: (data: Uint8Array, fileName: string) => Promise<boolean>;
   closeSaveFile: () => void;
   exportSave: () => Uint8Array | null;
   selectBox: (index: number) => void;
   selectSlot: (box: number, slot: number) => void;
-  selectPartySlot: (slot: number) => void;
+  selectPartySlot: (slot: number | null) => void;
   selectPokemon: (pkm: Pokemon | null) => void;
   updatePokemon: (pkm: Pokemon) => void;
   swapSlots: (fromBox: number, fromSlot: number, toBox: number, toSlot: number) => void;
@@ -48,16 +60,22 @@ export const useAppStore = create<AppState>((set, get) => ({
   isLoading: false,
   error: null,
   recentFiles: [],
-  theme: 'dark',
+  theme: readStoredTheme(),
+
+  setTheme: (theme) => {
+    try {
+      localStorage.setItem('pkhex-theme', theme);
+    } catch {
+      /* ignore */
+    }
+    applyThemeClass(theme);
+    set({ theme });
+  },
 
   loadSaveFile: async (data, fileName) => {
     set({ isLoading: true, error: null });
     try {
-      const bridgeUrl =
-        typeof import.meta !== 'undefined' && import.meta.env?.VITE_PKHEX_BRIDGE_URL
-          ? String(import.meta.env.VITE_PKHEX_BRIDGE_URL).trim() || undefined
-          : undefined;
-      const save = await loadSaveFileWithOptionalPkhexBridge(data, fileName, { bridgeUrl });
+      const save = await loadSaveFileWithOptionalPkhexBridge(data, fileName);
       const recent = get().recentFiles;
       const entry = { name: fileName, date: new Date().toISOString(), size: data.length };
       set({
@@ -98,6 +116,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   selectPartySlot: (slot) => {
     const save = get().saveFile;
     if (!save) return;
+    if (slot === null || slot < 0) {
+      set({ selectedPartySlot: null, selectedSlot: null, selectedPokemon: null });
+      return;
+    }
     const pkm = save.party[slot] ?? null;
     set({ selectedPartySlot: slot, selectedSlot: null, selectedPokemon: pkm });
   },

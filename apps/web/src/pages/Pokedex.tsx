@@ -8,6 +8,7 @@ import {
   PokemonType,
 } from '@pkhex/core';
 import { PokemonSprite } from '@/components/pokemon/PokemonSprite';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { motion } from 'framer-motion';
 import { BookOpen, Search } from 'lucide-react';
 const STAT_LABELS = ['HP', 'Atk', 'Def', 'SpA', 'SpD', 'Spe'] as const;
@@ -24,23 +25,20 @@ export function Pokedex() {
 
   return (
     <div className="space-y-6">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-          <BookOpen className="w-6 h-6 text-indigo-400" /> Pokédex
-        </h1>
-        <p className="text-surface-400 text-sm mt-1">
-          National Dex data and sprites (PokeAPI sprite mirror). {ids.length} species.
-        </p>
-      </motion.div>
+      <PageHeader
+        icon={BookOpen}
+        title="Pokédex"
+        description={`Reference data and sprites (PokeAPI). ${ids.length} species in this build.`}
+      />
 
       <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-500" />
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-surface-500" aria-hidden />
         <input
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by name or number…"
-          className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-white placeholder:text-surface-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+          className="input-field pl-10"
         />
       </div>
 
@@ -58,7 +56,7 @@ export function Pokedex() {
           return (
             <div
               key={id}
-              className="glass rounded-xl p-3 flex flex-col items-center gap-2 border border-white/[0.06] hover:border-indigo-500/20 transition-colors"
+              className="glass flex flex-col items-center gap-2 rounded-xl border border-slate-200 p-3 transition-colors hover:border-indigo-300 dark:border-white/[0.06] dark:hover:border-indigo-500/20"
             >
               <span className="text-[10px] text-surface-500 font-mono w-full text-left">#{id}</span>
               <PokemonSprite

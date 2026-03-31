@@ -5,6 +5,8 @@ import {
   type Pokemon, type LegalityResult,
 } from '@pkhex/core';
 import { PokemonSprite } from '@/components/pokemon/PokemonSprite';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { EmptyState } from '@/components/layout/EmptyState';
 import { motion } from 'framer-motion';
 import { clsx } from 'clsx';
 import { Shield, CheckCircle, XCircle, AlertTriangle, Zap } from 'lucide-react';
@@ -43,11 +45,7 @@ export function Legality() {
   }, [saveFile]);
 
   if (!saveFile) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <p className="text-surface-400">No save file loaded</p>
-      </div>
-    );
+    return <EmptyState title="Legality check needs a save file" />;
   }
 
   const legalCount = results.filter(r => r.result.status === LegalityStatus.Legal).length;
@@ -56,12 +54,11 @@ export function Legality() {
 
   return (
     <div className="space-y-6">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-          <Shield className="w-6 h-6 text-red-400" /> Legality Checker
-        </h1>
-        <p className="text-surface-400 text-sm mt-1">Scan all Pokémon for legality issues</p>
-      </motion.div>
+      <PageHeader
+        icon={Shield}
+        title="Legality"
+        description="Heuristic checks on party and boxed Pokémon from this save."
+      />
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -70,19 +67,19 @@ export function Legality() {
         className="grid grid-cols-3 gap-4"
       >
         <div className="glass rounded-xl p-4 text-center">
-          <CheckCircle className="w-8 h-8 text-green-400 mx-auto mb-2" />
-          <p className="text-2xl font-bold text-white">{legalCount}</p>
-          <p className="text-xs text-surface-400">Legal</p>
+          <CheckCircle className="mx-auto mb-2 h-8 w-8 text-green-600 dark:text-green-400" aria-hidden />
+          <p className="text-2xl font-bold text-slate-900 dark:text-white">{legalCount}</p>
+          <p className="text-xs text-slate-500 dark:text-surface-400">Legal</p>
         </div>
         <div className="glass rounded-xl p-4 text-center">
-          <AlertTriangle className="w-8 h-8 text-amber-400 mx-auto mb-2" />
-          <p className="text-2xl font-bold text-white">{warningCount}</p>
-          <p className="text-xs text-surface-400">Warnings</p>
+          <AlertTriangle className="mx-auto mb-2 h-8 w-8 text-amber-600 dark:text-amber-400" aria-hidden />
+          <p className="text-2xl font-bold text-slate-900 dark:text-white">{warningCount}</p>
+          <p className="text-xs text-slate-500 dark:text-surface-400">Warnings</p>
         </div>
         <div className="glass rounded-xl p-4 text-center">
-          <XCircle className="w-8 h-8 text-red-400 mx-auto mb-2" />
-          <p className="text-2xl font-bold text-white">{illegalCount}</p>
-          <p className="text-xs text-surface-400">Illegal</p>
+          <XCircle className="mx-auto mb-2 h-8 w-8 text-red-600 dark:text-red-400" aria-hidden />
+          <p className="text-2xl font-bold text-slate-900 dark:text-white">{illegalCount}</p>
+          <p className="text-xs text-slate-500 dark:text-surface-400">Illegal</p>
         </div>
       </motion.div>
 
@@ -94,8 +91,8 @@ export function Legality() {
       >
         {results.length === 0 ? (
           <div className="glass rounded-xl p-12 text-center">
-            <Zap className="w-12 h-12 text-surface-600 mx-auto mb-4" />
-            <p className="text-surface-400">No Pokémon to check</p>
+            <Zap className="mx-auto mb-4 h-12 w-12 text-slate-300 dark:text-surface-600" aria-hidden />
+            <p className="text-sm text-slate-600 dark:text-surface-400">No Pokémon to check</p>
           </div>
         ) : (
           results.map((entry, i) => (
@@ -115,11 +112,11 @@ export function Legality() {
                 className="w-10 h-10 pixelated"
               />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-white">
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">
                   {getPokemonDisplayName(entry.pkm)}
-                  <span className="ml-2 text-xs text-surface-400">Lv.{entry.pkm.level}</span>
+                  <span className="ml-2 text-xs font-normal text-slate-500 dark:text-surface-400">Lv.{entry.pkm.level}</span>
                 </p>
-                <p className="text-xs text-surface-500">{entry.location}</p>
+                <p className="text-xs text-slate-500 dark:text-surface-500">{entry.location}</p>
                 {entry.result.issues.length > 0 && (
                   <div className="mt-1 flex flex-wrap gap-1">
                     {entry.result.issues.slice(0, 3).map((issue, j) => (

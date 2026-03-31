@@ -24,6 +24,7 @@ const ROUTE_LABELS: Record<string, string> = {
  */
 export function usePwaGameContext() {
   const saveFile = useAppStore((s) => s.saveFile);
+  const theme = useAppStore((s) => s.theme);
   const location = useLocation();
 
   useEffect(() => {
@@ -47,7 +48,9 @@ export function usePwaGameContext() {
           'PKHeX — Pokémon save editor. Load a save to see game version and data context.',
         );
       }
-      if (themeMeta) themeMeta.setAttribute('content', '#0f0f23');
+      if (themeMeta) {
+        themeMeta.setAttribute('content', theme === 'light' ? '#f1f5f9' : '#0f0f23');
+      }
       return;
     }
 
@@ -72,6 +75,8 @@ export function usePwaGameContext() {
       appleTitle.setAttribute('content', `${game} · PKHeX`);
     }
 
-    if (themeMeta) themeMeta.setAttribute('content', '#0f0f23');
-  }, [saveFile, location.pathname]);
+    if (themeMeta) {
+      themeMeta.setAttribute('content', theme === 'light' ? '#f1f5f9' : '#0f0f23');
+    }
+  }, [saveFile, location.pathname, theme]);
 }

@@ -1,6 +1,8 @@
 import { useAppStore } from '@/store/app-store';
 import { PokemonCard } from '@/components/pokemon/PokemonCard';
 import { PokemonEditor } from '@/components/pokemon/PokemonEditor';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { EmptyState } from '@/components/layout/EmptyState';
 import { motion } from 'framer-motion';
 import { Users } from 'lucide-react';
 
@@ -8,29 +10,20 @@ export function Party() {
   const { saveFile, selectedPartySlot, selectedPokemon, selectPartySlot } = useAppStore();
 
   if (!saveFile) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <p className="text-surface-400">No save file loaded</p>
-      </div>
-    );
+    return <EmptyState title="Party needs a save file" description="Load a save to view and edit your active team." />;
   }
 
   return (
     <div className="space-y-6">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-          <Users className="w-6 h-6 text-blue-400" /> Party
-        </h1>
-        <p className="text-surface-400 text-sm mt-1">Your active team of up to 6 Pokémon</p>
-      </motion.div>
+      <PageHeader
+        icon={Users}
+        title="Party"
+        description="Up to six Pokémon. Tap a member to inspect or edit."
+      />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <div className="grid grid-cols-3 sm:grid-cols-6 lg:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-6 lg:grid-cols-3">
             {saveFile.party.map((pkm, i) => (
               <PokemonCard
                 key={i}
@@ -46,14 +39,11 @@ export function Party() {
 
         <div>
           {selectedPokemon && selectedPartySlot !== null ? (
-            <PokemonEditor
-              pokemon={selectedPokemon}
-              onBack={() => selectPartySlot(-1)}
-            />
+            <PokemonEditor pokemon={selectedPokemon} onBack={() => selectPartySlot(null)} />
           ) : (
-            <div className="glass rounded-2xl p-12 text-center">
-              <Users className="w-12 h-12 text-surface-600 mx-auto mb-4" />
-              <p className="text-surface-400">Select a party member to view details</p>
+            <div className="glass rounded-xl p-10 text-center">
+              <Users className="mx-auto mb-3 h-10 w-10 text-slate-300 dark:text-surface-600" aria-hidden />
+              <p className="text-sm text-slate-600 dark:text-surface-400">Choose a party member to see details.</p>
             </div>
           )}
         </div>

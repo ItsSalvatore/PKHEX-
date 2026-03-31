@@ -95,7 +95,10 @@ export function PokemonEditor({ pokemon: initialPokemon, onBack }: PokemonEditor
   return (
     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
       {onBack && (
-        <button onClick={onBack} className="flex items-center gap-2 text-sm text-surface-400 hover:text-white transition-colors">
+        <button
+          onClick={onBack}
+          className="flex items-center gap-2 text-sm text-slate-600 transition-colors hover:text-slate-900 dark:text-surface-400 dark:hover:text-white"
+        >
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
       )}
@@ -134,7 +137,7 @@ export function PokemonEditor({ pokemon: initialPokemon, onBack }: PokemonEditor
         <div className="p-4">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h2 className="text-lg font-bold text-white">{getPokemonDisplayName(pokemon)}</h2>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">{getPokemonDisplayName(pokemon)}</h2>
               {getPokemonDisplayName(pokemon) !== speciesName && (
                 <p className="text-xs text-surface-400">{speciesName}</p>
               )}
@@ -152,7 +155,9 @@ export function PokemonEditor({ pokemon: initialPokemon, onBack }: PokemonEditor
             {tabs.map(t => (
               <button key={t.id} onClick={() => setTab(t.id)}
                 className={clsx('px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
-                  tab === t.id ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'text-surface-400 hover:text-white hover:bg-white/[0.04]',
+                  tab === t.id
+                    ? 'border border-indigo-300 bg-indigo-100 text-indigo-900 dark:border-indigo-500/30 dark:bg-indigo-500/20 dark:text-indigo-300'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-surface-400 dark:hover:bg-white/[0.04] dark:hover:text-white',
                 )}>{t.label}</button>
             ))}
           </div>
@@ -225,7 +230,15 @@ export function PokemonEditor({ pokemon: initialPokemon, onBack }: PokemonEditor
           {tab === 'stats' && (
             <div className="space-y-3 animate-fade-in">
               <div className="text-[10px] text-surface-400 text-right">
-                Total EVs: <span className={clsx('font-mono font-bold', totalEVs > 510 ? 'text-red-400' : 'text-white')}>{totalEVs}/510</span>
+                Total EVs:{' '}
+                <span
+                  className={clsx(
+                    'font-mono font-bold',
+                    totalEVs > 510 ? 'text-red-600 dark:text-red-400' : 'text-slate-900 dark:text-white',
+                  )}
+                >
+                  {totalEVs}/510
+                </span>
               </div>
               {statEntries.map(stat => {
                 const iv = pokemon.ivs[stat.key];
@@ -241,17 +254,29 @@ export function PokemonEditor({ pokemon: initialPokemon, onBack }: PokemonEditor
                       <div className="flex items-center gap-2">
                         <div className="flex items-center gap-1">
                           <span className="text-[9px] text-surface-500">IV</span>
-                          <input type="number" className="w-12 px-1 py-0.5 rounded bg-white/[0.04] border border-white/[0.08] text-white text-[10px] font-mono text-center focus:outline-none focus:border-indigo-500/40"
-                            value={iv} min={0} max={31} onChange={e => updateIV(stat.key, parseInt(e.target.value) || 0)} />
+                          <input
+                            type="number"
+                            className="w-12 rounded border border-slate-200 bg-white px-1 py-0.5 text-center font-mono text-[10px] text-slate-900 focus:border-indigo-400 focus:outline-none dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-white dark:focus:border-indigo-500/40"
+                            value={iv}
+                            min={0}
+                            max={31}
+                            onChange={e => updateIV(stat.key, parseInt(e.target.value) || 0)}
+                          />
                         </div>
                         <div className="flex items-center gap-1">
                           <span className="text-[9px] text-surface-500">EV</span>
-                          <input type="number" className="w-14 px-1 py-0.5 rounded bg-white/[0.04] border border-white/[0.08] text-white text-[10px] font-mono text-center focus:outline-none focus:border-indigo-500/40"
-                            value={ev} min={0} max={252} onChange={e => updateEV(stat.key, parseInt(e.target.value) || 0)} />
+                          <input
+                            type="number"
+                            className="w-14 rounded border border-slate-200 bg-white px-1 py-0.5 text-center font-mono text-[10px] text-slate-900 focus:border-indigo-400 focus:outline-none dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-white dark:focus:border-indigo-500/40"
+                            value={ev}
+                            min={0}
+                            max={252}
+                            onChange={e => updateEV(stat.key, parseInt(e.target.value) || 0)}
+                          />
                         </div>
                       </div>
                     </div>
-                    <div className="h-1.5 rounded-full bg-white/[0.04] overflow-hidden">
+                    <div className="h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-white/[0.04]">
                       <div className="stat-bar h-1.5" style={{ width: `${(iv / 31) * 100}%`, '--bar-color': stat.color } as React.CSSProperties} />
                     </div>
                   </div>
@@ -342,14 +367,14 @@ export function PokemonEditor({ pokemon: initialPokemon, onBack }: PokemonEditor
 
       {legality.issues.length > 0 && (
         <div className="glass rounded-xl p-3 space-y-1">
-          <h3 className="text-[10px] font-semibold text-white flex items-center gap-1">
-            <Shield className="w-3 h-3 text-amber-400" /> Legality Issues ({legality.issues.length})
+          <h3 className="flex items-center gap-1 text-[10px] font-semibold text-slate-900 dark:text-white">
+            <Shield className="h-3 w-3 text-amber-500 dark:text-amber-400" /> Legality issues ({legality.issues.length})
           </h3>
           {legality.issues.slice(0, 5).map((issue, i) => (
             <div key={i} className={clsx('p-1.5 rounded text-[10px]',
-              issue.severity === LegalityStatus.Illegal ? 'bg-red-500/10 text-red-400' : 'bg-amber-500/10 text-amber-400',
+              issue.severity === LegalityStatus.Illegal ? 'bg-red-500/10 text-red-600 dark:text-red-400' : 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
             )}>
-              <span className="font-mono text-white/60">{issue.field}</span>: {issue.message}
+              <span className="font-mono text-slate-600 dark:text-white/60">{issue.field}</span>: {issue.message}
             </div>
           ))}
         </div>

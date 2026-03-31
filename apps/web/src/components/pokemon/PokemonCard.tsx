@@ -24,7 +24,7 @@ export function PokemonCard({ pokemon, selected, onClick, size = 'md', showDetai
           size === 'lg' && 'rounded-2xl',
         )}
       >
-        <div className="w-8 h-8 rounded-full bg-white/[0.03] border border-white/[0.04]" />
+        <div className="h-8 w-8 rounded-full border border-slate-200 bg-slate-100 dark:border-white/[0.06] dark:bg-white/[0.04]" />
       </button>
     );
   }

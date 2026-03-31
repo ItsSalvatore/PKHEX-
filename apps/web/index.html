@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+  <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -12,10 +12,19 @@
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@500;600;700&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <script>
+      try {
+        var th = localStorage.getItem('pkhex-theme');
+        document.documentElement.classList.toggle('dark', th !== 'light');
+        document.documentElement.classList.toggle('light', th === 'light');
+      } catch (e) {
+        document.documentElement.classList.add('dark');
+      }
+    </script>
     <title>PKHeX</title>
   </head>
-  <body class="bg-surface-950 text-white antialiased">
+  <body class="min-h-screen antialiased transition-colors duration-200 bg-surface-100 text-surface-900 dark:bg-surface-950 dark:text-white">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

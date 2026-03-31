@@ -7,6 +7,7 @@ import {
   getSpeciesName, canInsertGift,
 } from '@pkhex/core';
 import { PokemonSprite } from '@/components/pokemon/PokemonSprite';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 import {
@@ -53,14 +54,11 @@ export function MysteryGifts() {
 
   return (
     <div className="space-y-6">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-          <Gift className="w-6 h-6 text-emerald-400" /> Mystery Gift Database
-        </h1>
-        <p className="text-surface-400 text-sm mt-1">
-          {mysteryGiftDb.totalCount} mystery gifts across all generations
-        </p>
-      </motion.div>
+      <PageHeader
+        icon={Gift}
+        title="Mystery gifts"
+        description={`${mysteryGiftDb.totalCount} entries in the built-in database. Insertion still depends on your loaded save.`}
+      />
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -107,7 +105,9 @@ export function MysteryGifts() {
                       onClick={() => setGenFilter(null)}
                       className={clsx(
                         'px-3 py-1 rounded-lg text-xs transition-all',
-                        genFilter === null ? 'bg-indigo-500/20 text-indigo-300' : 'text-surface-400 hover:text-white',
+                        genFilter === null
+                          ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-500/20 dark:text-indigo-300'
+                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-surface-400 dark:hover:bg-white/[0.04] dark:hover:text-white',
                       )}
                     >
                       All
@@ -118,7 +118,9 @@ export function MysteryGifts() {
                         onClick={() => setGenFilter(genFilter === g.gen ? null : g.gen)}
                         className={clsx(
                           'px-3 py-1 rounded-lg text-xs transition-all',
-                          genFilter === g.gen ? 'bg-indigo-500/20 text-indigo-300' : 'text-surface-400 hover:text-white',
+                          genFilter === g.gen
+                            ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-500/20 dark:text-indigo-300'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-surface-400 dark:hover:bg-white/[0.04] dark:hover:text-white',
                         )}
                       >
                         {g.label}
@@ -133,7 +135,9 @@ export function MysteryGifts() {
                       onClick={() => setTypeFilter(null)}
                       className={clsx(
                         'px-3 py-1 rounded-lg text-xs transition-all',
-                        typeFilter === null ? 'bg-indigo-500/20 text-indigo-300' : 'text-surface-400 hover:text-white',
+                        typeFilter === null
+                          ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-500/20 dark:text-indigo-300'
+                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-surface-400 dark:hover:bg-white/[0.04] dark:hover:text-white',
                       )}
                     >
                       All
@@ -144,7 +148,9 @@ export function MysteryGifts() {
                         onClick={() => setTypeFilter(typeFilter === t ? null : t)}
                         className={clsx(
                           'px-3 py-1 rounded-lg text-xs transition-all capitalize',
-                          typeFilter === t ? 'bg-indigo-500/20 text-indigo-300' : 'text-surface-400 hover:text-white',
+                          typeFilter === t
+                            ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-500/20 dark:text-indigo-300'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-surface-400 dark:hover:bg-white/[0.04] dark:hover:text-white',
                         )}
                       >
                         {t}
@@ -152,12 +158,12 @@ export function MysteryGifts() {
                     ))}
                   </div>
                 </div>
-                <label className="flex items-center gap-2 text-xs text-surface-300 cursor-pointer">
+                <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-700 dark:text-surface-300">
                   <input
                     type="checkbox"
                     checked={activeOnly}
                     onChange={e => setActiveOnly(e.target.checked)}
-                    className="rounded border-white/20 bg-white/5 text-indigo-500"
+                    className="rounded border-slate-300 bg-white text-indigo-600 dark:border-white/20 dark:bg-white/5 dark:text-indigo-500"
                   />
                   Active events only
                 </label>
@@ -205,7 +211,7 @@ export function MysteryGifts() {
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold text-white truncate">{gift.title}</p>
+                      <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">{gift.title}</p>
                       {gift.isShiny && <Sparkles className="w-3 h-3 text-amber-400 flex-shrink-0" />}
                     </div>
                     <p className="text-xs text-surface-400 truncate">{gift.description}</p>
@@ -244,7 +250,7 @@ export function MysteryGifts() {
               <div className="p-5 space-y-4">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-lg font-bold text-white">{selectedGift.title}</h3>
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">{selectedGift.title}</h3>
                     {selectedGift.isShiny && <span className="badge badge-shiny"><Sparkles className="w-3 h-3 mr-1" />Shiny</span>}
                   </div>
                   <p className="text-sm text-surface-400">{selectedGift.description}</p>
@@ -255,11 +261,13 @@ export function MysteryGifts() {
                     <>
                       <div>
                         <p className="text-xs text-surface-500 mb-0.5">Species</p>
-                        <p className="text-sm font-medium text-white">{selectedGift.speciesName} (#{selectedGift.species})</p>
+                        <p className="text-sm font-medium text-slate-900 dark:text-white">
+                          {selectedGift.speciesName} (#{selectedGift.species})
+                        </p>
                       </div>
                       <div>
                         <p className="text-xs text-surface-500 mb-0.5">Level</p>
-                        <p className="text-sm font-medium text-white">{selectedGift.level}</p>
+                        <p className="text-sm font-medium text-slate-900 dark:text-white">{selectedGift.level}</p>
                       </div>
                     </>
                   )}
@@ -267,26 +275,28 @@ export function MysteryGifts() {
                     <>
                       <div>
                         <p className="text-xs text-surface-500 mb-0.5">Item</p>
-                        <p className="text-sm font-medium text-white">{selectedGift.itemName}</p>
+                        <p className="text-sm font-medium text-slate-900 dark:text-white">{selectedGift.itemName}</p>
                       </div>
                       <div>
                         <p className="text-xs text-surface-500 mb-0.5">Count</p>
-                        <p className="text-sm font-medium text-white">×{selectedGift.itemCount}</p>
+                        <p className="text-sm font-medium text-slate-900 dark:text-white">×{selectedGift.itemCount}</p>
                       </div>
                     </>
                   )}
                   <div>
                     <p className="text-xs text-surface-500 mb-0.5 flex items-center gap-1"><Globe className="w-3 h-3" /> Region</p>
-                    <p className="text-sm font-medium text-white">{selectedGift.region}</p>
+                    <p className="text-sm font-medium text-slate-900 dark:text-white">{selectedGift.region}</p>
                   </div>
                   <div>
                     <p className="text-xs text-surface-500 mb-0.5 flex items-center gap-1"><Hash className="w-3 h-3" /> Generation</p>
-                    <p className="text-sm font-medium text-white">Gen {selectedGift.generation}</p>
+                    <p className="text-sm font-medium text-slate-900 dark:text-white">Gen {selectedGift.generation}</p>
                   </div>
                   {selectedGift.serialCode && (
                     <div className="col-span-2">
                       <p className="text-xs text-surface-500 mb-0.5">Serial Code</p>
-                      <p className="text-sm font-mono font-semibold text-indigo-400">{selectedGift.serialCode}</p>
+                      <p className="text-sm font-mono font-semibold text-indigo-700 dark:text-indigo-400">
+                        {selectedGift.serialCode}
+                      </p>
                     </div>
                   )}
                 </div>

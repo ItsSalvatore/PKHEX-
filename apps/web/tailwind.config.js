@@ -40,6 +40,8 @@ export default {
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
         mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+        /** Page titles / tooling headers (ui-ux-pro-max + design-system/pkhex-web) */
+        display: ['Fira Code', 'JetBrains Mono', 'ui-monospace', 'monospace'],
       },
       animation: {
         'fade-in': 'fadeIn 0.3s ease-out',

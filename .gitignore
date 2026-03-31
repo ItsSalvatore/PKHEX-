@@ -1,4 +1,5 @@
 node_modules/
+tools/pkhex-save-bridge/publish/
 dist/
 build/
 .expo/

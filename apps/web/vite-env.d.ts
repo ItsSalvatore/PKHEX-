@@ -1,7 +1,8 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  /** POST save bytes to PKHeX.Core bridge, e.g. `/api/pkhex-parse` (dev proxy) or `http://127.0.0.1:5177/parse`. */
+  readonly DEV: boolean;
+  /** Override PKHeX.Core bridge URL; when unset in dev, `@pkhex/core` defaults to `/api/pkhex-parse` (Vite proxy). */
   readonly VITE_PKHEX_BRIDGE_URL?: string;
 }
 

@@ -14,6 +14,7 @@ import {
   GameVersion,
   GAME_NAMES,
 } from '@pkhex/core';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { motion } from 'framer-motion';
 import { clsx } from 'clsx';
 import {
@@ -21,29 +22,6 @@ import {
 } from 'lucide-react';
 
 const WILD_KEY = '__wild_encounter__';
-
-const CATEGORY_ICONS: Partial<Record<CheatCategory, string>> = {
-  [CheatCategory.WalkThroughWalls]: '🚶',
-  [CheatCategory.RareCandy]: '🍬',
-  [CheatCategory.MasterBall]: '⚾',
-  [CheatCategory.InfiniteMoney]: '💰',
-  [CheatCategory.CatchRate]: '🎯',
-  [CheatCategory.ShinyPokemon]: '✨',
-  [CheatCategory.WildModifier]: '🐾',
-  [CheatCategory.ExpMultiplier]: '📈',
-  [CheatCategory.AllItems]: '🎒',
-  [CheatCategory.InfiniteHP]: '❤️',
-  [CheatCategory.MaxStats]: '💪',
-  [CheatCategory.Teleport]: '🌀',
-  [CheatCategory.Pokedex]: '📖',
-  [CheatCategory.AllBadges]: '🏅',
-  [CheatCategory.EggHatch]: '🥚',
-  [CheatCategory.NoBattles]: '🚫',
-  [CheatCategory.CatchTrainer]: '🤝',
-  [CheatCategory.AllTMs]: '💿',
-  [CheatCategory.EggTicket]: '🎫',
-  [CheatCategory.MasterCode]: '🔑',
-};
 
 const GEN_ORDER: GameVersion[][] = [
   [GameVersion.Ruby, GameVersion.Sapphire, GameVersion.Emerald, GameVersion.FireRed, GameVersion.LeafGreen],
@@ -175,23 +153,25 @@ export function CheatCodes() {
 
   return (
     <div className="space-y-6">
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-xl font-semibold text-white flex items-center gap-2">
-          <Gamepad2 className="w-5 h-5 text-rose-400" /> Cheats
-        </h1>
-        <p className="text-surface-400 text-sm mt-1">
-          Pick a game and category; copy the lines below. Gen 4–5 wild Pokémon use the species list. Mostly from{' '}
-          <a
-            href="https://www.pokemoncoders.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-indigo-400 hover:text-indigo-300 inline-flex items-center gap-0.5"
-          >
-            PokemonCoders <ExternalLink className="w-3 h-3" />
-          </a>
-          .
-        </p>
-      </motion.div>
+      <PageHeader
+        icon={Gamepad2}
+        title="Cheat codes"
+        description={
+          <>
+            Pick a game and category, then copy the lines below. Gen 4–5 wild Pokémon use the species list. Mostly
+            from{' '}
+            <a
+              href="https://www.pokemoncoders.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-0.5 font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+            >
+              PokemonCoders <ExternalLink className="h-3 w-3" aria-hidden />
+            </a>
+            .
+          </>
+        }
+      />
 
       <motion.div
         initial={{ opacity: 0, y: 16 }}
@@ -231,7 +211,7 @@ export function CheatCodes() {
                 )}
                 {dbCategories.sort((a, b) => a.localeCompare(b)).map(cat => (
                   <option key={cat} value={cat}>
-                    {CATEGORY_ICONS[cat] ?? '🔧'} {cat}
+                    {cat}
                   </option>
                 ))}
               </select>
@@ -241,7 +221,7 @@ export function CheatCodes() {
         </div>
 
         {categoryKey === WILD_KEY && wildTemplate && (
-          <div className="space-y-3 pt-1 border-t border-white/[0.06]">
+          <div className="space-y-3 border-t border-slate-200 pt-1 dark:border-white/[0.06]">
             <div className="flex items-center gap-2 text-xs text-surface-500">
               <Zap className="w-3.5 h-3.5" />
               <span>
@@ -250,7 +230,7 @@ export function CheatCodes() {
                   href={wildTemplate.sourceUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-indigo-400 hover:text-indigo-300"
+                  className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
                 >
                   {wildTemplate.gameName} cheats (PokemonCoders)
                 </a>
@@ -310,10 +290,10 @@ export function CheatCodes() {
           </div>
         )}
 
-        <div className="rounded-lg border border-white/[0.08] bg-black/50 p-4 space-y-3">
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-3 dark:border-white/[0.08] dark:bg-black/50">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h2 className="text-sm font-medium text-white">{displayTitle}</h2>
+              <h2 className="text-sm font-medium text-slate-900 dark:text-white">{displayTitle}</h2>
               {displayDescription ? (
                 <p className="text-xs text-surface-500 mt-0.5">{displayDescription}</p>
               ) : null}
@@ -336,7 +316,7 @@ export function CheatCodes() {
           </div>
 
           {activeCodes && activeCodes.length > 0 ? (
-            <pre className="font-mono text-[13px] leading-6 text-surface-200 whitespace-pre-wrap break-all select-all">
+            <pre className="select-all whitespace-pre-wrap break-all font-mono text-[13px] leading-6 text-slate-800 dark:text-surface-200">
               {activeCodes.join('\n')}
             </pre>
           ) : (
@@ -355,20 +335,20 @@ export function CheatCodes() {
         </div>
       </motion.div>
 
-      <div className="rounded-xl border border-white/[0.06] overflow-hidden">
+      <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-white/[0.06]">
         <button
           type="button"
           onClick={() => setBrowseOpen(o => !o)}
-          className="w-full flex items-center justify-between px-4 py-3 text-left text-sm font-medium text-white bg-white/[0.03] hover:bg-white/[0.05]"
+          className="flex w-full items-center justify-between bg-slate-100/90 px-4 py-3 text-left text-sm font-medium text-slate-900 hover:bg-slate-100 dark:bg-white/[0.03] dark:text-white dark:hover:bg-white/[0.05]"
         >
           <span className="flex items-center gap-2">
-            <Search className="w-4 h-4 text-surface-400" />
+            <Search className="h-4 w-4 text-slate-500 dark:text-surface-400" />
             Search all codes for {GAME_NAMES[gameVersion] ?? 'this game'}
           </span>
           <ChevronDown className={clsx('w-4 h-4 transition-transform', browseOpen && 'rotate-180')} />
         </button>
         {browseOpen && (
-          <div className="p-4 space-y-3 border-t border-white/[0.06]">
+          <div className="space-y-3 border-t border-slate-200 p-4 dark:border-white/[0.06]">
             <input
               type="search"
               placeholder="e.g. rare candy, shiny, walk…"
